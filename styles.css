@@ -39,6 +39,14 @@
   box-sizing: border-box;
 }
 
+/* Model/user-generated text can mix Hebrew and English (a quoted claim,
+   an English proper noun inside a Hebrew sentence, etc). dir="auto" picks
+   the right base direction per element; isolate keeps that from leaking
+   into surrounding punctuation. */
+[dir="auto"] {
+  unicode-bidi: isolate;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -56,6 +64,35 @@ body {
 .page-header {
   text-align: center;
   margin-bottom: 1.75rem;
+}
+
+.lang-toggle {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.lang-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.lang-btn:hover {
+  border-color: #d8d5cc;
+}
+
+.lang-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
 }
 
 .page-header h1 {
@@ -92,7 +129,7 @@ body {
   padding: 0.4rem 0.85rem;
   font-size: 0.85rem;
   cursor: pointer;
-  text-align: left;
+  text-align: start;
   max-width: 100%;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -234,7 +271,7 @@ body {
 
 .considerations {
   margin: 0;
-  padding-left: 1.2rem;
+  padding-inline-start: 1.2rem;
 }
 
 .considerations li {

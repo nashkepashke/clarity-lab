@@ -1,47 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Claim Breakdown</title>
+  <title></title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="page">
     <header class="page-header">
-      <h1>Claim Breakdown</h1>
-      <p class="subtitle">Paste a claim or statement and see it broken down.</p>
+      <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language / שפה">
+        <button type="button" class="lang-btn" data-lang="he"></button>
+        <button type="button" class="lang-btn" data-lang="en"></button>
+      </div>
+      <h1 id="page-title"></h1>
+      <p class="subtitle" id="page-subtitle"></p>
     </header>
 
     <section class="input-card">
-      <div class="chips" id="chips">
-        <button type="button" class="chip" data-claim="Coffee is bad for your health.">Coffee is bad for your health.</button>
-        <button type="button" class="chip" data-claim="Remote work will become the default for most office jobs by 2030.">Remote work will become the default by 2030.</button>
-        <button type="button" class="chip" data-claim="This new law is the right way to fix the housing crisis.">This new law fixes the housing crisis.</button>
-      </div>
+      <div class="chips" id="chips"></div>
 
-      <label for="claim-input" class="input-label">Your claim</label>
+      <label for="claim-input" class="input-label" id="input-label"></label>
       <textarea
         id="claim-input"
         class="claim-input"
         rows="4"
-        placeholder="Paste or type a short claim or statement..."
+        dir="auto"
       ></textarea>
 
-      <button type="button" id="analyze-btn" class="analyze-btn">Break it down</button>
+      <button type="button" id="analyze-btn" class="analyze-btn"></button>
     </section>
 
-    <p id="error-area" class="error-message" hidden></p>
+    <p id="error-area" class="error-message" dir="auto" hidden></p>
 
     <section id="result-area" class="result-area" hidden>
       <!-- Result card is rendered here by app.js -->
     </section>
 
-    <footer class="disclaimer">
-      Demo only — not a real fact-checker.
-    </footer>
+    <footer class="disclaimer" id="disclaimer"></footer>
   </main>
 
+  <script src="translations.js"></script>
   <script src="analyzeClaim.js"></script>
   <script src="app.js"></script>
 </body>
