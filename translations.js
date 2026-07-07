@@ -179,7 +179,24 @@ var TRANSLATIONS = {
       toggle: "היסטוריה",
       empty: "עדיין אין היסטוריה.",
       clear: "נקה היסטוריה",
-      restore: "הצג שוב"
+      restore: "הצג שוב",
+      confirmClear: "למחוק את כל ההיסטוריה? אי אפשר לשחזר את זה.",
+      privacyNote: "ההיסטוריה נשמרת רק במכשיר ובדפדפן הזה — שום דבר לא נשלח או נשמר בשרת.",
+      relative: {
+        justNow: "הרגע",
+        minutes: function (n) {
+          return n === 1 ? "לפני דקה" : "לפני " + n + " דקות";
+        },
+        hours: function (n) {
+          return n === 1 ? "לפני שעה" : "לפני " + n + " שעות";
+        },
+        days: function (n) {
+          return n === 1 ? "אתמול" : "לפני " + n + " ימים";
+        },
+        older: function (dateStr) {
+          return "בתאריך " + dateStr;
+        }
+      }
     },
     errors: {
       bad_request: "יש לבדוק את הטענה שהזנתם (חסרה או ארוכה מדי) ולנסות שוב.",
@@ -356,7 +373,24 @@ var TRANSLATIONS = {
       toggle: "History",
       empty: "No history yet.",
       clear: "Clear history",
-      restore: "Show again"
+      restore: "Show again",
+      confirmClear: "Delete all history? This can't be undone.",
+      privacyNote: "History is stored only on this device and browser — nothing is sent to or saved on any server.",
+      relative: {
+        justNow: "Just now",
+        minutes: function (n) {
+          return n === 1 ? "1 minute ago" : n + " minutes ago";
+        },
+        hours: function (n) {
+          return n === 1 ? "1 hour ago" : n + " hours ago";
+        },
+        days: function (n) {
+          return n === 1 ? "Yesterday" : n + " days ago";
+        },
+        older: function (dateStr) {
+          return "on " + dateStr;
+        }
+      }
     },
     errors: {
       bad_request: "Please check your claim text (missing or too long) and try again.",

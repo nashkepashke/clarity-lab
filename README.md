@@ -179,13 +179,38 @@ translated, templated one-line justification.
 - **Mobile**: verdict layer (dials as a 2×2 grid), then claim cards
   stacked, each with its own "Sources (n)" expander instead of a shared
   rail.
-- **History** (new): every analysis is saved to `localStorage`
-  (`claimBreakdownHistory`, capped at 20), and a panel near the input
-  lists past submissions for one-click re-render with no new API call.
-  Because rendering is gated by field presence rather than a schema
-  version check, older or partial stored entries just render whatever
-  fields they have and silently skip the rest — verified with a
-  hand-seeded legacy-shaped entry.
+- **History**: every successful analysis is saved to `localStorage`
+  (`claimBreakdownHistory`, capped at 20 — oldest dropped first) as
+  `{ savedAt, lang, originalText, data }`, where `data` is the *entire*
+  combined result (`claims`, `epistemicProfile`, `overallAssessment`,
+  every grounded source). A panel near the input lists entries newest
+  first — truncated claim text, a relative timestamp ("2 hours ago",
+  falling back to an absolute date past 30 days), and the overall
+  assessment badge — and clicking one re-renders it instantly from
+  `localStorage`, no new `/api/triage` or `/api/evidence` call. All
+  `localStorage` reads/writes are wrapped in `try/catch`, so a full quota
+  or a private-browsing mode that blocks storage just means history
+  silently doesn't persist, never a crash. "Clear history" asks for
+  confirmation first. A small always-visible note in the panel says
+  history is local to this device/browser only.
+  - **Renders in the language it was saved in, not the current UI
+    language.** `renderDashboard(data, lang)` temporarily points the
+    module-level `T` at `TRANSLATIONS[entry.lang]` for the duration of
+    that render (then restores it) — a Hebrew-saved analysis still shows
+    Hebrew badges and section labels even if you've since switched the
+    toggle to English, since its free-text content only ever exists in
+    the language Gemini generated it in; relabeling the chrome around it
+    would produce an inconsistent mix, not a translation. The same
+    per-entry language lookup applies to the assessment badge shown in
+    the list preview. Panel chrome itself (the "Show again" button,
+    relative-time phrasing, the privacy note) always follows the
+    *current* UI language, since that's navigation, not restored content.
+  - **Old/partial entries render safely** because every section is
+    gated on field presence (`if (claim.evidenceSummary) { ... }`), not
+    on `claim.type` or a schema-version check — whatever fields an entry
+    has renders, whatever's missing is silently skipped. Verified with a
+    hand-seeded legacy-shaped entry (missing `epistemicProfile`, missing
+    `lang`) that still restores and renders correctly.
 
 ## Error handling
 

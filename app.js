@@ -28,6 +28,7 @@ var dialsContainer = document.getElementById("dials");
 var claimsColumn = document.getElementById("claims-column");
 var evidenceRail = document.getElementById("evidence-rail");
 var historyToggleEl = document.getElementById("history-toggle");
+var historyPrivacyNoteEl = document.getElementById("history-privacy-note");
 var historyListEl = document.getElementById("history-list");
 var historyClearBtn = document.getElementById("history-clear-btn");
 
@@ -54,6 +55,7 @@ function applyLanguage(lang) {
   disclaimerEl.textContent = T.disclaimer;
   verdictLabelEl.textContent = T.verdict.overallLabel;
   historyToggleEl.textContent = T.history.toggle;
+  historyPrivacyNoteEl.textContent = T.history.privacyNote;
   historyClearBtn.textContent = T.history.clear;
 
   renderChips();
@@ -119,7 +121,7 @@ analyzeBtn.addEventListener("click", function () {
     if (phase === "triage-done") analyzeBtn.textContent = T.input.phaseEvidence;
   })
     .then(function (data) {
-      renderDashboard(data);
+      renderDashboard(data, currentLang);
       pushHistoryEntry(text, currentLang, data);
       renderHistoryList();
     })
@@ -144,10 +146,29 @@ function showError(message) {
 
 // ---------- Dashboard rendering ----------
 
-function renderDashboard(data) {
-  renderVerdictStrip(data);
-  renderClaimsColumn(data.claims);
-  renderEvidenceRail(data.claims);
+// `lang` decides which translation table badges/section-labels/dial names
+// are drawn from for this render. For a live analysis that's always
+// currentLang; for a restored history entry it's whatever language that
+// entry was originally analyzed in, so a Hebrew-saved analysis still
+// reads as Hebrew even if the UI toggle currently shows English — its
+// free-text content is only ever available in the language it was
+// generated in anyway, so re-labeling the chrome around it to a
+// different language would be an inconsistent mix, not a translation.
+// All the render helpers below reference the module-level `T` directly
+// (that's the existing, unchanged pattern), so this just points `T` at
+// the right table for the duration of the synchronous render and puts
+// it back — no need to thread a lang param through every helper.
+function renderDashboard(data, lang) {
+  var renderT = TRANSLATIONS[lang] || TRANSLATIONS[currentLang] || TRANSLATIONS.he;
+  var previousT = T;
+  T = renderT;
+  try {
+    renderVerdictStrip(data);
+    renderClaimsColumn(data.claims);
+    renderEvidenceRail(data.claims);
+  } finally {
+    T = previousT;
+  }
   dashboardArea.hidden = false;
 }
 
@@ -558,6 +579,29 @@ function truncate(text, max) {
   return text.length > max ? text.slice(0, max) + "…" : text;
 }
 
+// Relative-time phrasing is panel chrome (like the "Show again" button),
+// so unlike the restored analysis itself, it always uses the *current*
+// UI language (T), not the entry's saved language.
+function formatRelativeTime(savedAt) {
+  var diffSec = Math.floor((Date.now() - savedAt) / 1000);
+  var diffMin = Math.floor(diffSec / 60);
+  var diffHour = Math.floor(diffMin / 60);
+  var diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return T.history.relative.justNow;
+  if (diffMin < 60) return T.history.relative.minutes(diffMin);
+  if (diffHour < 24) return T.history.relative.hours(diffHour);
+  if (diffDay < 30) return T.history.relative.days(diffDay);
+
+  var dateStr;
+  try {
+    dateStr = new Date(savedAt).toLocaleDateString(T.dateLocale);
+  } catch (err) {
+    dateStr = "";
+  }
+  return T.history.relative.older(dateStr);
+}
+
 function renderHistoryList() {
   var list = loadHistory();
   historyListEl.innerHTML = "";
@@ -583,15 +627,23 @@ function renderHistoryList() {
     var dateEl = document.createElement("span");
     dateEl.className = "history-item-date";
     try {
-      dateEl.textContent = new Date(entry.savedAt).toLocaleString(T.dateLocale);
+      dateEl.textContent = formatRelativeTime(entry.savedAt);
     } catch (err) {
       dateEl.textContent = "";
     }
     li.appendChild(dateEl);
 
     if (entry.data && entry.data.overallAssessment) {
+      // The badge shows the entry's own saved-language label — it's part
+      // of the restored content, not panel chrome, so it follows the
+      // same "render as saved" rule as the full restored view below.
+      var entryT = TRANSLATIONS[entry.lang] || T;
       li.appendChild(
-        makeBadge(badgeLabel(T.badges.assessment, entry.data.overallAssessment), "assessment-badge", badgeClassForAssessment(entry.data.overallAssessment))
+        makeBadge(
+          badgeLabel(entryT.badges.assessment, entry.data.overallAssessment),
+          "assessment-badge",
+          badgeClassForAssessment(entry.data.overallAssessment)
+        )
       );
     }
 
@@ -602,7 +654,7 @@ function renderHistoryList() {
     restoreBtn.addEventListener("click", function () {
       if (!entry.data || !Array.isArray(entry.data.claims)) return;
       errorArea.hidden = true;
-      renderDashboard(entry.data);
+      renderDashboard(entry.data, entry.lang);
       dashboardArea.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     li.appendChild(restoreBtn);
@@ -612,6 +664,7 @@ function renderHistoryList() {
 }
 
 historyClearBtn.addEventListener("click", function () {
+  if (!window.confirm(T.history.confirmClear)) return;
   saveHistory([]);
   renderHistoryList();
 });

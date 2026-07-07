@@ -264,6 +264,12 @@ body {
   flex-shrink: 0;
 }
 
+.history-privacy-note {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin: 0 0 0.6rem;
+}
+
 .history-empty {
   color: var(--text-muted);
   font-size: 0.85rem;
