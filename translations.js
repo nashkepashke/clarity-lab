@@ -1,24 +1,28 @@
 // translations.js
 //
 // The single source of truth for every user-facing string in the app.
-// Nothing in index.html, app.js, or analyzeClaim.js should hardcode text —
-// it all comes from TRANSLATIONS[currentLang] (see app.js's `T`).
+// Nothing in index.html, app.js, or analyzeClaim.js should hardcode text
+// — it all comes from TRANSLATIONS[currentLang] (see app.js's `T`).
 //
-// Badge maps translate the *display* of the English schema values that
-// come back from the API (see api/analyze.js's RESPONSE_SCHEMA) — the
-// schema values themselves are never translated, only their labels here.
+// Badge maps translate the *display* of the English schema/code values
+// that come back from the API (see api/triage.js and api/evidence.js) —
+// those values themselves are never translated, only their labels here.
+// Same for the epistemic-profile dial levels and source tiers: the code
+// computes/returns fixed English keys, this file supplies the label and
+// (for dials) a justification template function per level.
 //
-// Error messages are keyed by the `error` code the backend returns (see
-// api/analyze.js), not by its English `message` — that keeps every string
-// the user can see in exactly one place.
+// Error messages are keyed by the `error` code the backend returns, not
+// by its English `message` — that keeps every string the user can see
+// in exactly one place.
 
 var TRANSLATIONS = {
   he: {
     dir: "rtl",
     htmlLang: "he",
+    dateLocale: "he-IL",
     header: {
       title: "פירוק טענות",
-      subtitle: "הדביקו טענה או אמירה וראו אותה מפורקת."
+      subtitle: "הדביקו טענה, הבטחה או פסקה שלמה — נפרק אותה לגורמים ונבדוק כל חלק."
     },
     chips: [
       { claim: "יש להעלות את שכר המינימום במשק." },
@@ -27,26 +31,47 @@ var TRANSLATIONS = {
     ],
     input: {
       label: "הטענה שלך",
-      placeholder: "הדביקו או הקלידו טענה או אמירה קצרה...",
+      placeholder: "הדביקו או הקלידו טענה, הבטחה, או פסקה שלמה...",
       analyzeIdle: "פרקו את הטענה",
-      analyzeLoading: "מנתח..."
+      phaseTriage: "שובר לגורמים...",
+      phaseEvidence: "בודק מקורות..."
     },
     confidence: {
       label: "רמת ביטחון:"
     },
+    verdict: {
+      overallLabel: "מסקנה כוללת",
+      noResult: "לא הצלחנו לנתח אף אחת מהטענות."
+    },
+    claim: {
+      errorMessage: "הניתוח של הטענה הזו נכשל. ייתכן שזמני — נסו שוב.",
+      relatedPremises: "טענות עובדתיות קשורות:",
+      notSourceChecked: "לא נבדק מול מקורות — הערכה כללית בלבד.",
+      sources: function (n) {
+        return n === 0 ? "מקורות" : "מקורות (" + n + ")";
+      },
+      noSources: "לא נמצאו מקורות."
+    },
     sections: {
-      evidenceBasis: "בסיס הראיות",
-      steelman: "הגרסה החזקה וההוגנת ביותר",
-      strawman: "עיוות נפוץ שכדאי להיזהר ממנו",
+      whatWouldChangeAssessment: "מה עשוי לשנות את ההערכה",
+      evidenceSummary: "סיכום הראיות",
+      denominatorCheck: "ביחס למה?",
+      precisionCheck: "עד כמה הטענה מדויקת?",
+      alternativeExplanations: "הסברים חלופיים אפשריים",
+      correlationCaution: "מתאם מול סיבתיות",
+      distinguishingEvidence: "מה יבחין בין ההסברים",
+      referenceClassAndBaseRate: "מקרים דומים בעבר",
+      feasibility: "האם זה בר-ביצוע?",
       tension: "ערכים מנוגדים",
-      whatWouldChange: "מה עשוי לשנות את ההערכה"
+      steelman: "הגרסה החזקה וההוגנת ביותר",
+      strawmanWarning: "עיוות נפוץ שכדאי להיזהר ממנו"
     },
     badges: {
       type: {
-        Factual: "עובדתית",
+        Empirical: "עובדתית",
         Causal: "סיבתית",
-        Prediction: "תחזית",
-        "Opinion or value judgment": "דעה או שיפוט ערכי",
+        "Prediction-or-promise": "תחזית או הבטחה",
+        Normative: "שיפוט ערכי",
         Mixed: "מעורבת"
       },
       assessment: {
@@ -55,13 +80,106 @@ var TRANSLATIONS = {
         "Mixed or context-dependent": "מעורבת / תלוית הקשר",
         Contradicted: "נסתרת",
         "Not enough information": "אין מספיק מידע",
-        "Not empirically assessable": "לא ניתנת להערכה אמפירית"
+        "Not empirically assessable": "לא ניתנת להערכה אמפירית",
+        "Too recent to assess": "מוקדם מדי להעריך",
+        "Outcome not yet knowable": "התוצאה עדיין לא ידועה"
       },
       confidence: {
         Low: "נמוכה",
         Medium: "בינונית",
         High: "גבוהה"
+      },
+      sourceTier: {
+        "Primary official": "מקור רשמי ראשוני",
+        Academic: "אקדמי",
+        "Established journalism": "עיתונות מבוססת",
+        "Fact-check org": "ארגון בדיקת עובדות",
+        Other: "אחר"
       }
+    },
+    epistemicProfile: {
+      checkability: {
+        name: "ניתנות לבדיקה",
+        levels: {
+          "settled-by-evidence": "מוכרעת על בסיס ראיות",
+          partially: "חלקית",
+          "values-or-prediction": "ערכים או תחזית"
+        },
+        justify: {
+          "settled-by-evidence": function () {
+            return "כל הטענות כאן ניתנות לבדיקה מול עובדות.";
+          },
+          partially: function () {
+            return "חלק מהטענות כאן ניתנות לבדיקה עובדתית, וחלקן הן שיפוט ערכי או תחזית.";
+          },
+          "values-or-prediction": function () {
+            return "הטענות כאן הן שיפוט ערכי או תחזית לגבי העתיד, לא עובדות שניתן לבדוק כעת.";
+          }
+        }
+      },
+      evidenceStrength: {
+        name: "עוצמת הראיות",
+        levels: {
+          strong: "חזקה",
+          "mixed-or-thin": "מעורבת או דלה",
+          "none-found": "לא נמצאו ראיות",
+          "not-applicable": "לא רלוונטי"
+        },
+        justify: {
+          strong: function () {
+            return "החיפוש מצא מקורות אמינים עבור כל הטענות הניתנות לבדיקה.";
+          },
+          "mixed-or-thin": function () {
+            return "החיפוש מצא מקורות עבור חלק מהטענות בלבד, או מקורות מעטים.";
+          },
+          "none-found": function () {
+            return "החיפוש לא מצא מקורות אמינים עבור הטענות הניתנות לבדיקה.";
+          },
+          "not-applicable": function () {
+            return "אין כאן טענות עובדתיות שניתן לבדוק מול מקורות.";
+          }
+        }
+      },
+      precision: {
+        name: "דיוק",
+        levels: {
+          "specific-and-falsifiable": "ספציפית וניתנת להפרכה",
+          "somewhat-vague": "מעורפלת במידה מסוימת",
+          unfalsifiable: "לא ניתנת להפרכה"
+        },
+        justify: {
+          "specific-and-falsifiable": function () {
+            return "מדובר בטענה עובדתית בודדת וממוקדת.";
+          },
+          "somewhat-vague": function () {
+            return "הקלט כלל כמה טענות, או ניסוח פחות ממוקד.";
+          },
+          unfalsifiable: function () {
+            return "הטענות כאן מבוססות על ערכים, ולא ניתנות להפרכה עובדתית.";
+          }
+        }
+      },
+      analysisConfidence: {
+        name: "ביטחון הניתוח",
+        levels: { high: "גבוהה", medium: "בינונית", low: "נמוכה" },
+        justify: {
+          high: function () {
+            return "הניתוח בטוח בהערכה של כל הטענות.";
+          },
+          medium: function () {
+            return "הביטחון בהערכה משתנה בין הטענות.";
+          },
+          low: function () {
+            return "לפחות טענה אחת נותרה עם ביטחון נמוך.";
+          }
+        }
+      }
+    },
+    history: {
+      toggle: "היסטוריה",
+      empty: "עדיין אין היסטוריה.",
+      clear: "נקה היסטוריה",
+      restore: "הצג שוב"
     },
     errors: {
       bad_request: "יש לבדוק את הטענה שהזנתם (חסרה או ארוכה מדי) ולנסות שוב.",
@@ -78,9 +196,10 @@ var TRANSLATIONS = {
   en: {
     dir: "ltr",
     htmlLang: "en",
+    dateLocale: "en-US",
     header: {
       title: "Claim Breakdown",
-      subtitle: "Paste a claim or statement and see it broken down."
+      subtitle: "Paste a claim, a promise, or a whole paragraph — we'll break it down and check each part."
     },
     chips: [
       { claim: "Coffee is bad for your health." },
@@ -89,26 +208,47 @@ var TRANSLATIONS = {
     ],
     input: {
       label: "Your claim",
-      placeholder: "Paste or type a short claim or statement...",
+      placeholder: "Paste or type a claim, a promise, or a whole paragraph...",
       analyzeIdle: "Break it down",
-      analyzeLoading: "Analyzing..."
+      phaseTriage: "Breaking down the claim...",
+      phaseEvidence: "Checking sources..."
     },
     confidence: {
       label: "Confidence:"
     },
+    verdict: {
+      overallLabel: "Overall verdict",
+      noResult: "None of the claims could be analyzed."
+    },
+    claim: {
+      errorMessage: "Analysis of this claim failed. This may be temporary — try again.",
+      relatedPremises: "Related factual premises:",
+      notSourceChecked: "Not source-checked — general-knowledge assessment only.",
+      sources: function (n) {
+        return n === 0 ? "Sources" : "Sources (" + n + ")";
+      },
+      noSources: "No sources found."
+    },
     sections: {
-      evidenceBasis: "Evidence basis",
-      steelman: "Steelman: strongest fair version",
-      strawman: "Strawman to watch for",
+      whatWouldChangeAssessment: "What could change this",
+      evidenceSummary: "Evidence summary",
+      denominatorCheck: "Compared to what?",
+      precisionCheck: "How precise is this claim?",
+      alternativeExplanations: "Alternative explanations",
+      correlationCaution: "Correlation vs. causation",
+      distinguishingEvidence: "What would distinguish these",
+      referenceClassAndBaseRate: "Similar past cases",
+      feasibility: "Is this feasible?",
       tension: "Values in tension",
-      whatWouldChange: "What could change this"
+      steelman: "Steelman: strongest fair version",
+      strawmanWarning: "Strawman to watch for"
     },
     badges: {
       type: {
-        Factual: "Factual",
+        Empirical: "Empirical",
         Causal: "Causal",
-        Prediction: "Prediction",
-        "Opinion or value judgment": "Opinion or value judgment",
+        "Prediction-or-promise": "Prediction or promise",
+        Normative: "Normative",
         Mixed: "Mixed"
       },
       assessment: {
@@ -117,13 +257,106 @@ var TRANSLATIONS = {
         "Mixed or context-dependent": "Mixed or context-dependent",
         Contradicted: "Contradicted",
         "Not enough information": "Not enough information",
-        "Not empirically assessable": "Not empirically assessable"
+        "Not empirically assessable": "Not empirically assessable",
+        "Too recent to assess": "Too recent to assess",
+        "Outcome not yet knowable": "Outcome not yet knowable"
       },
       confidence: {
         Low: "Low",
         Medium: "Medium",
         High: "High"
+      },
+      sourceTier: {
+        "Primary official": "Primary official",
+        Academic: "Academic",
+        "Established journalism": "Established journalism",
+        "Fact-check org": "Fact-check org",
+        Other: "Other"
       }
+    },
+    epistemicProfile: {
+      checkability: {
+        name: "Checkability",
+        levels: {
+          "settled-by-evidence": "Settled by evidence",
+          partially: "Partially",
+          "values-or-prediction": "Values or prediction"
+        },
+        justify: {
+          "settled-by-evidence": function () {
+            return "Every claim here is checkable against facts.";
+          },
+          partially: function () {
+            return "Some claims here are empirically checkable; others are values or predictions.";
+          },
+          "values-or-prediction": function () {
+            return "The claims here are value judgments or predictions about the future, not currently-checkable facts.";
+          }
+        }
+      },
+      evidenceStrength: {
+        name: "Evidence strength",
+        levels: {
+          strong: "Strong",
+          "mixed-or-thin": "Mixed or thin",
+          "none-found": "None found",
+          "not-applicable": "Not applicable"
+        },
+        justify: {
+          strong: function () {
+            return "Search found credible sources for every checkable claim.";
+          },
+          "mixed-or-thin": function () {
+            return "Search found sources for only some claims, or thin support.";
+          },
+          "none-found": function () {
+            return "Search found no credible sources for the checkable claims.";
+          },
+          "not-applicable": function () {
+            return "There are no empirical claims here to check against sources.";
+          }
+        }
+      },
+      precision: {
+        name: "Precision",
+        levels: {
+          "specific-and-falsifiable": "Specific and falsifiable",
+          "somewhat-vague": "Somewhat vague",
+          unfalsifiable: "Unfalsifiable"
+        },
+        justify: {
+          "specific-and-falsifiable": function () {
+            return "This is a single, focused factual claim.";
+          },
+          "somewhat-vague": function () {
+            return "The input contained multiple claims, or less tightly-focused wording.";
+          },
+          unfalsifiable: function () {
+            return "The claims here rest on values, not something factually falsifiable.";
+          }
+        }
+      },
+      analysisConfidence: {
+        name: "Analysis confidence",
+        levels: { high: "High", medium: "Medium", low: "Low" },
+        justify: {
+          high: function () {
+            return "The analysis is confident across every claim.";
+          },
+          medium: function () {
+            return "Confidence in the assessment varies across claims.";
+          },
+          low: function () {
+            return "At least one claim's assessment remains low-confidence.";
+          }
+        }
+      }
+    },
+    history: {
+      toggle: "History",
+      empty: "No history yet.",
+      clear: "Clear history",
+      restore: "Show again"
     },
     errors: {
       bad_request: "Please check your claim text (missing or too long) and try again.",

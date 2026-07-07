@@ -29,12 +29,31 @@
       ></textarea>
 
       <button type="button" id="analyze-btn" class="analyze-btn"></button>
+
+      <details class="history-panel" id="history-panel">
+        <summary id="history-toggle"></summary>
+        <div class="history-body">
+          <ul class="history-list" id="history-list"></ul>
+          <button type="button" class="history-clear-btn" id="history-clear-btn"></button>
+        </div>
+      </details>
     </section>
 
     <p id="error-area" class="error-message" dir="auto" hidden></p>
 
-    <section id="result-area" class="result-area" hidden>
-      <!-- Result card is rendered here by app.js -->
+    <section id="dashboard-area" class="dashboard-area" hidden>
+      <section class="verdict-strip" id="verdict-strip">
+        <div class="verdict-headline">
+          <span class="verdict-label" id="verdict-label"></span>
+          <span id="verdict-badge"></span>
+        </div>
+        <div class="dials" id="dials"></div>
+      </section>
+
+      <div class="dashboard-grid">
+        <div class="claims-column" id="claims-column"></div>
+        <aside class="evidence-rail" id="evidence-rail"></aside>
+      </div>
     </section>
 
     <footer class="disclaimer" id="disclaimer"></footer>

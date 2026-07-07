@@ -1,7 +1,9 @@
 /* styles.css
    Calm, readable styling. One accent color, soft neutrals, generous
-   spacing. Mobile-first: the layout is a single centered column that
-   just gets more breathing room on wider screens. */
+   spacing. Mobile-first: input + verdict + claim cards stack in a single
+   column. From ~900px up, the dashboard becomes a fixed-height shell
+   (header/input/verdict stay put) with claim cards and the evidence
+   rail scrolling independently inside it. */
 
 :root {
   --bg: #f6f5f2;
@@ -33,6 +35,10 @@
   --unknown-text: #5a5a5f;
   --not-assessable-bg: #ece8f0;
   --not-assessable-text: #5c5468;
+  --too-recent-bg: #f7e9db;
+  --too-recent-text: #96591f;
+  --not-knowable-bg: #e8ecf2;
+  --not-knowable-text: #46587a;
 }
 
 * {
@@ -187,6 +193,96 @@ body {
   cursor: default;
 }
 
+/* ---------- History ---------- */
+
+.history-panel {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.history-panel summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  list-style: none;
+}
+
+.history-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.history-body {
+  margin-top: 0.75rem;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.history-item:first-child {
+  border-top: none;
+}
+
+.history-item-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-item-date {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
+.history-restore-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.history-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+}
+
+.history-clear-btn {
+  margin-top: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+/* ---------- Shared: errors, badges, collapsible sections ---------- */
+
 .error-message {
   margin: 1.5rem 0 0;
   background: var(--contradicted-bg);
@@ -195,10 +291,6 @@ body {
   border-radius: 10px;
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
-}
-
-.result-area {
-  margin-top: 1.5rem;
 }
 
 .result-card {
@@ -230,10 +322,11 @@ body {
   font-weight: 600;
 }
 
-.badge-factual { background: var(--factual-bg); color: var(--factual-text); }
+.badge-empirical { background: var(--factual-bg); color: var(--factual-text); }
 .badge-causal { background: var(--causal-bg); color: var(--causal-text); }
 .badge-prediction { background: var(--prediction-bg); color: var(--prediction-text); }
-.badge-opinion { background: var(--opinion-bg); color: var(--opinion-text); }
+.badge-normative { background: var(--opinion-bg); color: var(--opinion-text); }
+.badge-type-mixed { background: var(--unknown-bg); color: var(--unknown-text); }
 
 .badge-supported { background: var(--supported-bg); color: var(--supported-text); }
 .badge-mostly-supported { background: var(--mostly-supported-bg); color: var(--mostly-supported-text); }
@@ -241,6 +334,14 @@ body {
 .badge-contradicted { background: var(--contradicted-bg); color: var(--contradicted-text); }
 .badge-unknown { background: var(--unknown-bg); color: var(--unknown-text); }
 .badge-not-assessable { background: var(--not-assessable-bg); color: var(--not-assessable-text); }
+.badge-too-recent { background: var(--too-recent-bg); color: var(--too-recent-text); }
+.badge-not-knowable { background: var(--not-knowable-bg); color: var(--not-knowable-text); }
+
+.badge-tier-primary { background: var(--supported-bg); color: var(--supported-text); }
+.badge-tier-academic { background: var(--causal-bg); color: var(--causal-text); }
+.badge-tier-journalism { background: var(--unknown-bg); color: var(--unknown-text); }
+.badge-tier-factcheck { background: var(--mostly-supported-bg); color: var(--mostly-supported-text); }
+.badge-tier-other { background: var(--not-assessable-bg); color: var(--not-assessable-text); }
 
 .badge-outline {
   background: transparent;
@@ -267,6 +368,18 @@ body {
   margin: 0 0 0.25rem;
   color: var(--text-muted);
   font-size: 0.88rem;
+}
+
+.not-source-checked {
+  margin: 0 0 0.75rem;
+  color: var(--too-recent-text);
+  font-size: 0.82rem;
+}
+
+.claim-error {
+  color: var(--contradicted-text);
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 .considerations {
@@ -323,6 +436,230 @@ body {
   margin: 0;
 }
 
+.related-premises {
+  border-top: 1px solid var(--border);
+  padding-top: 0.7rem;
+  margin-top: 0.7rem;
+}
+
+.related-premises-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+
+.related-premises-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.related-premise-chip {
+  display: inline-block;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.claim-highlight {
+  animation: claim-pulse 1.5s ease;
+}
+
+@keyframes claim-pulse {
+  0% { box-shadow: 0 0 0 3px rgba(58, 90, 125, 0.35); }
+  100% { box-shadow: 0 0 0 3px rgba(58, 90, 125, 0); }
+}
+
+/* ---------- Source cards ---------- */
+
+.source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.source-card {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.source-card:hover {
+  border-color: var(--accent);
+}
+
+.source-favicon {
+  width: 18px;
+  height: 18px;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.source-card-body {
+  min-width: 0;
+}
+
+.source-title {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.source-meta {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.source-meta > span:first-child {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.source-tier-badge {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.68rem;
+}
+
+/* ---------- Verdict strip + dials ---------- */
+
+.verdict-strip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  margin-top: 1.5rem;
+}
+
+.verdict-headline {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.verdict-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.verdict-none {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.dials {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.dial {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+}
+
+.dial summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dial summary::-webkit-details-marker {
+  display: none;
+}
+
+.dial-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dial-segments {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.dial-segment {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.dial-segment.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.dial-justification {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Dashboard layout ---------- */
+
+.dashboard-area {
+  margin-top: 0;
+}
+
+.claims-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.evidence-rail {
+  display: none;
+}
+
+.rail-group {
+  margin-bottom: 1.25rem;
+}
+
+.rail-group-heading {
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+
 .disclaimer {
   text-align: center;
   color: var(--text-muted);
@@ -337,5 +674,56 @@ body {
 
   .page-header h1 {
     font-size: 1.85rem;
+  }
+}
+
+@media (min-width: 900px) {
+  html, body {
+    height: 100%;
+  }
+
+  .page {
+    max-width: 1100px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 1rem;
+  }
+
+  .page-header,
+  .input-card,
+  .verdict-strip,
+  .disclaimer {
+    flex-shrink: 0;
+  }
+
+  .dials {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .dashboard-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1.25rem;
+  }
+
+  .claims-column {
+    overflow-y: auto;
+    min-height: 0;
+    padding-inline-end: 0.25rem;
+  }
+
+  .evidence-rail {
+    display: block;
+    overflow-y: auto;
+    min-height: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem;
+    margin-top: 1.25rem;
   }
 }

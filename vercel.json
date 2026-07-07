@@ -1,7 +1,10 @@
 {
   "functions": {
-    "api/analyze.js": {
-      "maxDuration": 30
+    "api/triage.js": {
+      "maxDuration": 20
+    },
+    "api/evidence.js": {
+      "maxDuration": 45
     }
   }
 }
