@@ -164,10 +164,18 @@ translated, templated one-line justification.
   3-segment indicators — explicitly no gauges/needles. Each dial is a
   `<details>` (tap to reveal its justification), reusing the same
   collapsible pattern as the claim card sections.
-- **Desktop** (~900px+): the verdict strip and input stay fixed; a
-  2-column grid below has claim cards (main) and an evidence rail
-  (sources grouped by claim, sorted by tier) that scroll independently —
-  the outer page itself doesn't scroll.
+- **Desktop** (~900px+): a 2-column grid — claim cards (main) and an
+  evidence rail (sources grouped by claim, sorted by tier). The page
+  scrolls normally (same mechanism as mobile — proven robust); the
+  evidence rail is `position: sticky` with a viewport-relative
+  `max-height`, so it stays in view and scrolls independently as you
+  read down through claims. This replaced an earlier fixed-height
+  flex-shell attempt at a stricter "nothing but two inner regions
+  scrolls" layout, which silently collapsed the claims column to a few
+  px (with all its content still there, just unreachable) whenever the
+  verdict strip's natural height left it no room — sticky positioning
+  can't be squeezed to zero the same way, since it isn't negotiating
+  space with siblings.
 - **Mobile**: verdict layer (dials as a 2×2 grid), then claim cards
   stacked, each with its own "Sources (n)" expander instead of a shared
   rail.
