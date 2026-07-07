@@ -178,6 +178,14 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (geminiRes.status === 503) {
+      res.status(503).json({
+        error: "model_overloaded",
+        message: "Gemini is under heavy load right now. Wait a moment and try again."
+      });
+      return;
+    }
+
     console.error("Gemini API error:", geminiRes.status, detail);
     res.status(502).json({ error: "upstream_error", message: "The analysis service returned an error." });
     return;
