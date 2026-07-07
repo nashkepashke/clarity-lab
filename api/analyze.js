@@ -14,6 +14,15 @@ const GEMINI_URL =
   ":generateContent";
 
 const MAX_CLAIM_LENGTH = 2000;
+const MAX_OUTPUT_TOKENS = 1024;
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 600;
+
+function sleep(ms) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, ms);
+  });
+}
 
 const SYSTEM_INSTRUCTION =
   "You are a calm, rigorous claim-analysis assistant for a demo app. Given a short " +
@@ -139,26 +148,39 @@ module.exports = async function handler(req, res) {
   }
 
   let geminiRes;
-  try {
-    geminiRes = await fetch(GEMINI_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
-      },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-        contents: [{ parts: [{ text: claim }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: RESPONSE_SCHEMA
-        }
-      })
-    });
-  } catch (err) {
-    console.error("Failed to reach Gemini API:", err);
-    res.status(502).json({ error: "upstream_unreachable", message: "Couldn't reach the analysis service." });
-    return;
+  for (var attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      geminiRes = await fetch(GEMINI_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+          contents: [{ parts: [{ text: claim }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: RESPONSE_SCHEMA,
+            maxOutputTokens: MAX_OUTPUT_TOKENS
+          }
+        })
+      });
+    } catch (err) {
+      console.error("Failed to reach Gemini API:", err);
+      res.status(502).json({ error: "upstream_unreachable", message: "Couldn't reach the analysis service." });
+      return;
+    }
+
+    // 503 means Gemini is momentarily overloaded, not that anything is wrong
+    // with the request — worth a couple of quick retries before giving up.
+    if (geminiRes.status === 503 && attempt < MAX_ATTEMPTS) {
+      console.warn("Gemini overloaded (attempt " + attempt + " of " + MAX_ATTEMPTS + "), retrying...");
+      await sleep(RETRY_DELAY_MS * attempt);
+      continue;
+    }
+
+    break;
   }
 
   if (!geminiRes.ok) {
