@@ -1,0 +1,7 @@
+{
+  "name": "clarity-lab",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}

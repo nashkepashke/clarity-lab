@@ -1,10 +1,9 @@
 // analyzeClaim.js
 //
-// This is the ONLY file you should need to touch when you swap the fake
-// logic for a real API call. It exposes one global function, analyzeClaim,
-// which takes the claim text and returns a Promise that resolves to a
-// result object. Nothing else in the app knows or cares how the result
-// is produced.
+// This is the ONLY file page logic talks to for analysis. It calls our
+// serverless function at /api/analyze (which in turn calls Gemini) and
+// returns a Promise that resolves to the result object, or rejects with
+// an Error whose .message is safe to show the user.
 //
 // Expected result shape:
 // {
@@ -17,24 +16,24 @@
 // }
 
 function analyzeClaim(text) {
-  return new Promise(function (resolve) {
-    setTimeout(function () {
-      resolve({
-        claim: text && text.trim() ? text.trim() : "(no claim entered)",
-        type: "Prediction",
-        status: "Mixed or uncertain",
-        explanation:
-          "This restates a forecast rather than an established fact, so it can't be simply " +
-          "true or false yet. Some supporting signals exist, but they rely on assumptions that " +
-          "could easily break in either direction.",
-        considerations: [
-          "Check what timeframe the claim assumes, and whether that timeframe is realistic.",
-          "Look for who benefits from the claim being believed — that can hint at bias.",
-          "See whether similar past predictions actually panned out."
-        ],
-        tension:
-          "Optimism about progress is in tension with caution about overpromising."
-      });
-    }, 900);
+  return fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ claim: text })
+  }).then(function (res) {
+    return res.json().catch(function () {
+      return null;
+    }).then(function (body) {
+      if (res.ok) {
+        return body;
+      }
+
+      if (res.status === 429) {
+        throw new Error("You're sending requests too fast for the free tier. Wait a moment and try again.");
+      }
+
+      var message = (body && body.message) || "Something went wrong analyzing that claim.";
+      throw new Error(message);
+    });
   });
 }

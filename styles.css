@@ -144,6 +144,16 @@ body {
   cursor: default;
 }
 
+.error-message {
+  margin: 1.5rem 0 0;
+  background: var(--contradicted-bg);
+  color: var(--contradicted-text);
+  border: 1px solid rgba(154, 59, 52, 0.25);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
 .result-area {
   margin-top: 1.5rem;
 }

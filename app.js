@@ -7,6 +7,7 @@
 var claimInput = document.getElementById("claim-input");
 var analyzeBtn = document.getElementById("analyze-btn");
 var resultArea = document.getElementById("result-area");
+var errorArea = document.getElementById("error-area");
 var chipsContainer = document.getElementById("chips");
 
 // Clicking an example chip fills the textarea with its claim text.
@@ -24,13 +25,25 @@ analyzeBtn.addEventListener("click", function () {
   analyzeBtn.disabled = true;
   analyzeBtn.textContent = "Analyzing...";
   resultArea.hidden = true;
+  errorArea.hidden = true;
 
-  analyzeClaim(text).then(function (result) {
-    renderResult(result);
-    analyzeBtn.disabled = false;
-    analyzeBtn.textContent = "Break it down";
-  });
+  analyzeClaim(text)
+    .then(function (result) {
+      renderResult(result);
+    })
+    .catch(function (err) {
+      showError(err.message || "Something went wrong analyzing that claim.");
+    })
+    .then(function () {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = "Break it down";
+    });
 });
+
+function showError(message) {
+  errorArea.textContent = message;
+  errorArea.hidden = false;
+}
 
 function renderResult(result) {
   resultArea.innerHTML = "";
