@@ -1,0 +1,233 @@
+/* styles.css
+   Calm, readable styling. One accent color, soft neutrals, generous
+   spacing. Mobile-first: the layout is a single centered column that
+   just gets more breathing room on wider screens. */
+
+:root {
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --text: #26262b;
+  --text-muted: #6b6b73;
+  --border: #e4e2dc;
+  --accent: #3a5a7d;
+  --accent-hover: #2d4863;
+
+  --factual-bg: #e4eef0;
+  --factual-text: #285e63;
+  --prediction-bg: #ece4f5;
+  --prediction-text: #5b3d8a;
+  --opinion-bg: #f5ece0;
+  --opinion-text: #8a5a2b;
+
+  --supported-bg: #e3f0e1;
+  --supported-text: #2f6b2a;
+  --mixed-bg: #faf1d8;
+  --mixed-text: #8a6d1f;
+  --contradicted-bg: #f6e2e1;
+  --contradicted-text: #9a3b34;
+  --unknown-bg: #eaeaea;
+  --unknown-text: #5a5a5f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.page-header h1 {
+  font-size: 1.6rem;
+  margin: 0 0 0.35rem;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.input-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: left;
+  max-width: 100%;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.chip:hover {
+  background: #eeece6;
+  border-color: #d8d5cc;
+}
+
+.input-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.claim-input {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.claim-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.analyze-btn {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.8rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.analyze-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.analyze-btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.result-area {
+  margin-top: 1.5rem;
+}
+
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.result-claim {
+  font-size: 1.05rem;
+  font-style: italic;
+  margin: 0 0 0.9rem;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.badge-factual { background: var(--factual-bg); color: var(--factual-text); }
+.badge-prediction { background: var(--prediction-bg); color: var(--prediction-text); }
+.badge-opinion { background: var(--opinion-bg); color: var(--opinion-text); }
+
+.badge-supported { background: var(--supported-bg); color: var(--supported-text); }
+.badge-mixed { background: var(--mixed-bg); color: var(--mixed-text); }
+.badge-contradicted { background: var(--contradicted-bg); color: var(--contradicted-text); }
+.badge-unknown { background: var(--unknown-bg); color: var(--unknown-text); }
+
+.result-explanation {
+  color: var(--text);
+  margin: 0 0 1rem;
+}
+
+.section-heading {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.considerations {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+}
+
+.considerations li {
+  margin-bottom: 0.4rem;
+}
+
+.result-tension {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.disclaimer {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 2rem;
+}
+
+@media (min-width: 520px) {
+  .page {
+    padding-top: 3rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.85rem;
+  }
+}
