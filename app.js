@@ -19,6 +19,7 @@ var inputLabelEl = document.getElementById("input-label");
 var claimInput = document.getElementById("claim-input");
 var analyzeBtn = document.getElementById("analyze-btn");
 var dashboardArea = document.getElementById("dashboard-area");
+var dashboardGrid = document.querySelector(".dashboard-grid");
 var errorArea = document.getElementById("error-area");
 var chipsContainer = document.getElementById("chips");
 var disclaimerEl = document.getElementById("disclaimer");
@@ -27,6 +28,7 @@ var verdictBadgeEl = document.getElementById("verdict-badge");
 var dialsContainer = document.getElementById("dials");
 var claimsColumn = document.getElementById("claims-column");
 var evidenceRail = document.getElementById("evidence-rail");
+var historyPanel = document.getElementById("history-panel");
 var historyToggleEl = document.getElementById("history-toggle");
 var historyPrivacyNoteEl = document.getElementById("history-privacy-note");
 var historyListEl = document.getElementById("history-list");
@@ -116,6 +118,9 @@ analyzeBtn.addEventListener("click", function () {
   analyzeBtn.textContent = T.input.phaseTriage;
   dashboardArea.hidden = true;
   errorArea.hidden = true;
+  // Reclaim vertical space for the incoming result — matters most on
+  // desktop, where the goal is to see the verdict/dials without scrolling.
+  historyPanel.removeAttribute("open");
 
   analyzeClaim(text, currentLang, function (phase) {
     if (phase === "triage-done") analyzeBtn.textContent = T.input.phaseEvidence;
@@ -170,6 +175,12 @@ function renderDashboard(data, lang) {
     T = previousT;
   }
   dashboardArea.hidden = false;
+
+  // Once there's a result to look at, the input doesn't need to stay
+  // full-height — freeing that space is most of what makes the verdict
+  // strip and dials visible without scrolling on desktop. resize:vertical
+  // still lets you drag it back open if you want more room to edit.
+  claimInput.rows = 2;
 }
 
 function renderVerdictStrip(data) {
@@ -486,6 +497,12 @@ function renderEvidenceRail(claims) {
     group.appendChild(buildSourceList(claim.sources));
     evidenceRail.appendChild(group);
   });
+
+  // An empty bordered box with nothing in it is clutter, not a module —
+  // hide it and let claim cards use the full width instead.
+  var hasRail = withSources.length > 0;
+  evidenceRail.hidden = !hasRail;
+  if (dashboardGrid) dashboardGrid.classList.toggle("no-rail", !hasRail);
 }
 
 function makeDetailsSection(label, buildBody) {

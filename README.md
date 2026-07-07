@@ -164,21 +164,50 @@ translated, templated one-line justification.
   3-segment indicators — explicitly no gauges/needles. Each dial is a
   `<details>` (tap to reveal its justification), reusing the same
   collapsible pattern as the claim card sections.
-- **Desktop** (~900px+): a 2-column grid — claim cards (main) and an
-  evidence rail (sources grouped by claim, sorted by tier). The page
-  scrolls normally (same mechanism as mobile — proven robust); the
-  evidence rail is `position: sticky` with a viewport-relative
-  `max-height`, so it stays in view and scrolls independently as you
-  read down through claims. This replaced an earlier fixed-height
-  flex-shell attempt at a stricter "nothing but two inner regions
-  scrolls" layout, which silently collapsed the claims column to a few
-  px (with all its content still there, just unreachable) whenever the
-  verdict strip's natural height left it no room — sticky positioning
-  can't be squeezed to zero the same way, since it isn't negotiating
-  space with siblings.
+- **Desktop** (~900px+): a true no-scroll shell. `.page` is
+  `height: 100vh` and a column flexbox; the header, input card, and
+  disclaimer keep their natural size, and `#dashboard-area` (verdict
+  strip + the claim-cards/evidence-rail grid) is the one region that
+  grows to fill what's left — with `.verdict-strip` staying natural-size
+  inside it and `.dashboard-grid`'s row stretching to fill the
+  remainder. `.claims-column` and `.evidence-rail` both get
+  `overflow-y: auto`, so a long analysis scrolls *inside those two
+  regions*, not the page — the verdict and all four dials stay visible
+  the whole time. Verified: at 1280/1440px with a long 5-claim analysis,
+  the verdict strip and all four dials render fully on-screen with zero
+  scrolling, in both languages.
+  - Two things make this robust where an earlier attempt at the same
+    idea wasn't. First, the flex-sizing rules are on `#dashboard-area`
+    itself — the earlier version applied them to `.dashboard-grid`, but
+    `.dashboard-grid`'s actual parent (`#dashboard-area`) was never
+    itself made a flex container, so the rules were silently inert, and
+    the region collapsed to a few px with its content still there but
+    unreachable. Second, `.page` uses `overflow-y: auto`, not `hidden` —
+    `.claims-column` has a `min-height: 240px` floor, so if some edge
+    case (a very short window, a dial wrapping to two lines) ever leaves
+    less room than that floor needs, the *page* gracefully gains a small
+    scroll instead of clipping content into unreachability again.
+    Verified directly: forcing the history panel open after a result
+    exists (an edge case the auto-collapse below prevents in normal use)
+    leaves `.claims-column` at its 240px floor and makes the page
+    scrollable by the small excess, rather than losing content.
+  - The input textarea drops to 2 rows once a result exists
+    (`resize: vertical` still lets you drag it back open), and the
+    history panel auto-collapses the moment a new analysis starts —
+    together these are most of what makes the verdict/dials fit above
+    the fold in the first place.
+  - The evidence rail hides entirely (and claim cards take the full
+    width) when no claim has grounded sources — an empty bordered box
+    with nothing in it is clutter, not a module.
 - **Mobile**: verdict layer (dials as a 2×2 grid), then claim cards
   stacked, each with its own "Sources (n)" expander instead of a shared
-  rail.
+  rail. Below the 900px breakpoint the layout is just this single-column
+  stack with normal page scrolling — no separate tablet layout; a 768px
+  viewport falls into the same bucket rather than trying to force the
+  desktop 2-column grid into a width too narrow to do it justice. Small
+  interactive controls (`.lang-btn`, the history "Show again"/"Clear
+  history" buttons, the history panel's own toggle) all have a
+  `min-height: 34px` tap target.
 - **History**: every successful analysis is saved to `localStorage`
   (`claimBreakdownHistory`, capped at 20 — oldest dropped first) as
   `{ savedAt, lang, originalText, data }`, where `data` is the *entire*
