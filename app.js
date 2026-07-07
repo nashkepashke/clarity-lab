@@ -59,36 +59,88 @@ function renderResult(result) {
   var badges = document.createElement("div");
   badges.className = "badges";
   badges.appendChild(makeBadge(result.type, "type-badge", badgeClassForType(result.type)));
-  badges.appendChild(makeBadge(result.status, "status-badge", badgeClassForStatus(result.status)));
+  badges.appendChild(makeBadge(result.assessment, "assessment-badge", badgeClassForAssessment(result.assessment)));
   card.appendChild(badges);
 
-  var explanation = document.createElement("p");
-  explanation.className = "result-explanation";
-  explanation.textContent = result.explanation;
-  card.appendChild(explanation);
+  var confidenceRow = document.createElement("div");
+  confidenceRow.className = "confidence-row";
+  var confidenceLabel = document.createElement("span");
+  confidenceLabel.className = "confidence-label";
+  confidenceLabel.textContent = "Confidence:";
+  confidenceRow.appendChild(confidenceLabel);
+  confidenceRow.appendChild(
+    makeBadge(result.confidence, "confidence-badge", "badge-outline " + badgeClassForConfidence(result.confidence))
+  );
+  card.appendChild(confidenceRow);
 
-  var considerationsHeading = document.createElement("p");
-  considerationsHeading.className = "section-heading";
-  considerationsHeading.textContent = "Things to consider";
-  card.appendChild(considerationsHeading);
+  var confidenceReason = document.createElement("p");
+  confidenceReason.className = "confidence-reason";
+  confidenceReason.textContent = result.confidenceReason;
+  card.appendChild(confidenceReason);
 
-  var list = document.createElement("ul");
-  list.className = "considerations";
-  result.considerations.forEach(function (point) {
-    var li = document.createElement("li");
-    li.textContent = point;
-    list.appendChild(li);
-  });
-  card.appendChild(list);
+  card.appendChild(
+    makeDetailsSection("Evidence basis", function () {
+      var list = document.createElement("ul");
+      list.className = "considerations";
+      result.evidenceBasis.forEach(function (point) {
+        var li = document.createElement("li");
+        li.textContent = point;
+        list.appendChild(li);
+      });
+      return list;
+    })
+  );
 
-  var tension = document.createElement("p");
-  tension.className = "result-tension";
-  tension.innerHTML = "<strong>In tension:</strong> ";
-  tension.appendChild(document.createTextNode(result.tension));
-  card.appendChild(tension);
+  card.appendChild(
+    makeDetailsSection("Steelman: strongest fair version", function () {
+      var p = document.createElement("p");
+      p.textContent = result.steelman;
+      return p;
+    })
+  );
+
+  card.appendChild(
+    makeDetailsSection("Strawman to watch for", function () {
+      var p = document.createElement("p");
+      p.textContent = result.strawmanWarning;
+      return p;
+    })
+  );
+
+  card.appendChild(
+    makeDetailsSection("Values in tension", function () {
+      var p = document.createElement("p");
+      p.textContent = result.tension;
+      return p;
+    })
+  );
+
+  card.appendChild(
+    makeDetailsSection("What could change this", function () {
+      var p = document.createElement("p");
+      p.textContent = result.whatWouldChangeAssessment;
+      return p;
+    })
+  );
 
   resultArea.appendChild(card);
   resultArea.hidden = false;
+}
+
+function makeDetailsSection(label, buildBody) {
+  var details = document.createElement("details");
+  details.className = "result-section";
+
+  var summary = document.createElement("summary");
+  summary.textContent = label;
+  details.appendChild(summary);
+
+  var body = document.createElement("div");
+  body.className = "result-section-body";
+  body.appendChild(buildBody());
+  details.appendChild(body);
+
+  return details;
 }
 
 function makeBadge(label, baseClass, modifierClass) {
@@ -99,14 +151,24 @@ function makeBadge(label, baseClass, modifierClass) {
 }
 
 function badgeClassForType(type) {
-  if (type === "Factual claim") return "badge-factual";
+  if (type === "Factual") return "badge-factual";
+  if (type === "Causal") return "badge-causal";
   if (type === "Prediction") return "badge-prediction";
-  return "badge-opinion";
+  if (type === "Opinion or value judgment") return "badge-opinion";
+  return "badge-unknown";
 }
 
-function badgeClassForStatus(status) {
-  if (status === "Supported") return "badge-supported";
-  if (status === "Contradicted") return "badge-contradicted";
-  if (status === "Not enough information") return "badge-unknown";
+function badgeClassForAssessment(assessment) {
+  if (assessment === "Supported") return "badge-supported";
+  if (assessment === "Mostly supported") return "badge-mostly-supported";
+  if (assessment === "Contradicted") return "badge-contradicted";
+  if (assessment === "Not enough information") return "badge-unknown";
+  if (assessment === "Not empirically assessable") return "badge-not-assessable";
   return "badge-mixed";
+}
+
+function badgeClassForConfidence(confidence) {
+  if (confidence === "Low") return "badge-confidence-low";
+  if (confidence === "High") return "badge-confidence-high";
+  return "badge-confidence-medium";
 }

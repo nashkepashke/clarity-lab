@@ -16,20 +16,41 @@ const GEMINI_URL =
 const MAX_CLAIM_LENGTH = 2000;
 
 const SYSTEM_INSTRUCTION =
-  "You are a calm, neutral claim-analysis assistant for a demo app. Given a short " +
-  "claim or statement from a user:\n" +
-  "1. Restate the claim in plain, neutral language without adding your own spin.\n" +
-  "2. Classify it as exactly one of: 'Factual claim' (a checkable statement about how " +
-  "things are or were), 'Prediction' (a claim about the future), or 'Opinion or value " +
-  "judgment' (depends on values or preferences and isn't simply true or false).\n" +
-  "3. Assess its status as exactly one of: 'Supported', 'Mixed or uncertain', " +
-  "'Contradicted', or 'Not enough information'.\n" +
-  "4. Give a short, plain-language explanation (2-3 sentences) for that status.\n" +
-  "5. List 2-3 concrete considerations a reader should weigh when evaluating the claim " +
-  "themselves.\n" +
-  "6. Note in one sentence what values or priorities are in tension in the claim or in " +
-  "how people react to it.\n" +
-  "Be measured — don't assert more confidence than the evidence supports.";
+  "You are a calm, rigorous claim-analysis assistant for a demo app. Given a short " +
+  "claim or statement from a user, produce a structured breakdown. Keep every field " +
+  "brief — a short phrase or one sentence, except where 2-3 sentences are explicitly " +
+  "requested below. Never fabricate specific sources, studies, statistics, or numbers " +
+  "you cannot verify; when your assessment relies on general background knowledge " +
+  "rather than a specific citable source, say so plainly instead of inventing one. " +
+  "Never assign a numeric score or percentage anywhere — assessments are categorical " +
+  "only. If a claim is too vague, subjective, or unfalsifiable to evaluate, say so " +
+  "('Not enough information' or 'Not empirically assessable') rather than guessing.\n" +
+  "1. claim: Restate the claim in plain, neutral language, without adding your own spin.\n" +
+  "2. type: Classify as exactly one of: 'Factual' (a checkable statement about how " +
+  "things are or were), 'Causal' (asserts one thing causes or caused another), " +
+  "'Prediction' (a claim about the future), 'Opinion or value judgment' (depends on " +
+  "values or preferences, not simply true or false), or 'Mixed' (combines more than " +
+  "one of the above).\n" +
+  "3. assessment: Assess as exactly one of: 'Supported', 'Mostly supported', 'Mixed or " +
+  "context-dependent', 'Contradicted', 'Not enough information', or 'Not empirically " +
+  "assessable' (for claims that are fundamentally about values or preferences rather " +
+  "than facts).\n" +
+  "4. confidence: How confident you are in that assessment — exactly one of 'Low', " +
+  "'Medium', 'High'.\n" +
+  "5. confidenceReason: One sentence on why that confidence level — what makes you more " +
+  "or less sure.\n" +
+  "6. evidenceBasis: 2-3 short bullets on what kind of evidence bears on this claim and " +
+  "what it generally shows. Be explicit when you're reasoning from general knowledge " +
+  "rather than specific sources.\n" +
+  "7. steelman: In 2-3 sentences, give the strongest, fairest version of the position " +
+  "behind this claim — how a thoughtful person holding it would argue for it.\n" +
+  "8. strawmanWarning: In 1-2 sentences, describe the distorted or exaggerated version " +
+  "of this claim that people are likely to argue against or spread, so the reader can " +
+  "recognize when a fight is against that instead of the real claim.\n" +
+  "9. tension: One sentence on which values or priorities this claim serves, and which " +
+  "it presses against.\n" +
+  "10. whatWouldChangeAssessment: One sentence on what new evidence or information " +
+  "would change this assessment.";
 
 const RESPONSE_SCHEMA = {
   type: "OBJECT",
@@ -37,23 +58,56 @@ const RESPONSE_SCHEMA = {
     claim: { type: "STRING" },
     type: {
       type: "STRING",
-      enum: ["Factual claim", "Prediction", "Opinion or value judgment"]
+      enum: ["Factual", "Causal", "Prediction", "Opinion or value judgment", "Mixed"]
     },
-    status: {
+    assessment: {
       type: "STRING",
-      enum: ["Supported", "Mixed or uncertain", "Contradicted", "Not enough information"]
+      enum: [
+        "Supported",
+        "Mostly supported",
+        "Mixed or context-dependent",
+        "Contradicted",
+        "Not enough information",
+        "Not empirically assessable"
+      ]
     },
-    explanation: { type: "STRING" },
-    considerations: {
+    confidence: { type: "STRING", enum: ["Low", "Medium", "High"] },
+    confidenceReason: { type: "STRING" },
+    evidenceBasis: {
       type: "ARRAY",
       items: { type: "STRING" },
       minItems: 2,
       maxItems: 3
     },
-    tension: { type: "STRING" }
+    steelman: { type: "STRING" },
+    strawmanWarning: { type: "STRING" },
+    tension: { type: "STRING" },
+    whatWouldChangeAssessment: { type: "STRING" }
   },
-  required: ["claim", "type", "status", "explanation", "considerations", "tension"],
-  propertyOrdering: ["claim", "type", "status", "explanation", "considerations", "tension"]
+  required: [
+    "claim",
+    "type",
+    "assessment",
+    "confidence",
+    "confidenceReason",
+    "evidenceBasis",
+    "steelman",
+    "strawmanWarning",
+    "tension",
+    "whatWouldChangeAssessment"
+  ],
+  propertyOrdering: [
+    "claim",
+    "type",
+    "assessment",
+    "confidence",
+    "confidenceReason",
+    "evidenceBasis",
+    "steelman",
+    "strawmanWarning",
+    "tension",
+    "whatWouldChangeAssessment"
+  ]
 };
 
 module.exports = async function handler(req, res) {

@@ -7,12 +7,17 @@
 //
 // Expected result shape:
 // {
-//   claim: string,          // the claim restated in plain language
-//   type: string,           // "Factual claim" | "Prediction" | "Opinion or value judgment"
-//   status: string,         // "Supported" | "Mixed or uncertain" | "Contradicted" | "Not enough information"
-//   explanation: string,    // a couple of sentences on why
-//   considerations: string[], // 2-3 bullet points to consider
-//   tension: string         // what values/priorities are in tension
+//   claim: string,                  // the claim restated in plain language
+//   type: string,                   // "Factual" | "Causal" | "Prediction" | "Opinion or value judgment" | "Mixed"
+//   assessment: string,             // "Supported" | "Mostly supported" | "Mixed or context-dependent" |
+//                                    // "Contradicted" | "Not enough information" | "Not empirically assessable"
+//   confidence: string,             // "Low" | "Medium" | "High"
+//   confidenceReason: string,       // one sentence on why that confidence level
+//   evidenceBasis: string[],        // 2-3 bullets on what evidence bears on this and what it shows
+//   steelman: string,               // 2-3 sentences: strongest fair version of the claim's position
+//   strawmanWarning: string,        // 1-2 sentences: the distorted version people argue against
+//   tension: string,                // which values/priorities this claim serves vs. presses on
+//   whatWouldChangeAssessment: string // one sentence on what would change the assessment
 // }
 
 function analyzeClaim(text) {
