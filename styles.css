@@ -1,18 +1,43 @@
 /* styles.css
-   Calm, readable styling. One accent color, soft neutrals, generous
-   spacing. Mobile-first: input + verdict + claim cards stack in a single
-   column. From ~900px up, the dashboard becomes a fixed-height shell
-   (header/input/verdict stay put) with claim cards and the evidence
-   rail scrolling independently inside it. */
+   Editorial/think-tank register: a serif for the handful of headline
+   moments (page title, the bottom-line verdict sentence), a Hebrew/Latin
+   humanist sans (Assistant) for everything else, a warm paper background,
+   one confident ink, a single considered accent, and desaturated
+   traffic-light functional colors. Mobile-first: input + verdict + claim
+   cards stack in a single column. From ~900px up, the dashboard becomes a
+   fixed-height shell (header/input/verdict stay put) with claim cards and
+   the evidence rail scrolling independently inside it. */
 
 :root {
+  /* ---- Type ---- */
+  --font-display: "Frank Ruhl Libre", Georgia, "Times New Roman", serif;
+  --font-ui: "Assistant", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.85rem;
+  --fs-base: 0.95rem;
+  --fs-md: 1.05rem;
+  --fs-lg: 1.3rem;
+  --fs-xl: 1.75rem;
+  --fs-2xl: 2.1rem;
+
+  /* ---- Spacing ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+
+  /* ---- Palette ---- */
   --bg: #f6f5f2;
   --surface: #ffffff;
-  --text: #26262b;
-  --text-muted: #6b6b73;
-  --border: #e4e2dc;
-  --accent: #3a5a7d;
-  --accent-hover: #2d4863;
+  --text: #24232a;
+  --text-muted: #68676f;
+  --border: #e3e0d8;
+  --accent: #2f4a63;
+  --accent-hover: #223549;
 
   --factual-bg: #e4eef0;
   --factual-text: #285e63;
@@ -23,20 +48,20 @@
   --opinion-bg: #f5ece0;
   --opinion-text: #8a5a2b;
 
-  --supported-bg: #e3f0e1;
-  --supported-text: #2f6b2a;
-  --mostly-supported-bg: #eef5e9;
-  --mostly-supported-text: #4a7a3f;
-  --mixed-bg: #faf1d8;
-  --mixed-text: #8a6d1f;
-  --contradicted-bg: #f6e2e1;
-  --contradicted-text: #9a3b34;
+  --supported-bg: #e2ecdd;
+  --supported-text: #2b5c27;
+  --mostly-supported-bg: #edf2e6;
+  --mostly-supported-text: #47702f;
+  --mixed-bg: #f7edd3;
+  --mixed-text: #7c5f18;
+  --contradicted-bg: #f4e0df;
+  --contradicted-text: #8c342d;
   --unknown-bg: #eaeaea;
   --unknown-text: #5a5a5f;
   --not-assessable-bg: #ece8f0;
   --not-assessable-text: #5c5468;
-  --too-recent-bg: #f7e9db;
-  --too-recent-text: #96591f;
+  --too-recent-bg: #f6e7d7;
+  --too-recent-text: #8d5219;
   --not-knowable-bg: #e8ecf2;
   --not-knowable-text: #46587a;
 }
@@ -57,26 +82,27 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  line-height: 1.6;
 }
 
 .page {
   max-width: 640px;
   margin: 0 auto;
-  padding: 2rem 1.25rem 3rem;
+  padding: var(--space-6) var(--space-4) var(--space-8);
 }
 
 .page-header {
   text-align: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: var(--space-4);
 }
 
 .lang-toggle {
   display: flex;
   justify-content: flex-end;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 .lang-btn {
@@ -84,54 +110,60 @@ body {
   border: 1px solid var(--border);
   color: var(--text-muted);
   border-radius: 999px;
-  padding: 0.45rem 0.8rem;
-  font-size: 0.78rem;
+  padding: 0.45rem 0.9rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 600;
   min-height: 34px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .lang-btn:hover {
-  border-color: #d8d5cc;
+  border-color: #d3cfc2;
 }
 
 .lang-btn.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
-  font-weight: 600;
 }
 
 .page-header h1 {
-  font-size: 1.6rem;
-  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-xl);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.4rem;
 }
 
 .subtitle {
   color: var(--text-muted);
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
 }
 
 .input-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: var(--space-5);
+  box-shadow: 0 1px 2px rgba(30, 27, 20, 0.04), 0 8px 20px -14px rgba(30, 27, 20, 0.18);
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .input-card.drag-over {
   border-color: var(--accent);
-  background: #f0f4f8;
+  background: #f0f3f6;
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 .chip {
@@ -139,8 +171,9 @@ body {
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 999px;
-  padding: 0.4rem 0.85rem;
-  font-size: 0.85rem;
+  padding: 0.4rem 0.9rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
   cursor: pointer;
   text-align: start;
   max-width: 100%;
@@ -148,16 +181,16 @@ body {
 }
 
 .chip:hover {
-  background: #eeece6;
-  border-color: #d8d5cc;
+  background: #efece2;
+  border-color: #d3cfc2;
 }
 
 .image-attach-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 0.6rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
 .image-attach-btn {
@@ -165,20 +198,21 @@ body {
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 999px;
-  padding: 0.4rem 0.85rem;
-  font-size: 0.85rem;
+  padding: 0.4rem 0.9rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
   min-height: 34px;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .image-attach-btn:hover {
-  background: #eeece6;
-  border-color: #d8d5cc;
+  background: #efece2;
+  border-color: #d3cfc2;
 }
 
 .image-hint {
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
 }
 
@@ -190,11 +224,11 @@ body {
 .image-preview:not([hidden]) {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.6rem;
-  margin-bottom: 1rem;
+  border-radius: 12px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
   background: var(--bg);
 }
 
@@ -220,6 +254,7 @@ body {
   line-height: 1;
   color: var(--text-muted);
   cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .image-remove-btn:hover {
@@ -230,13 +265,13 @@ body {
 .extract-prompt {
   margin: -0.2rem 0 0.6rem;
   color: var(--accent);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 
 .input-label {
   display: block;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   margin-bottom: 0.4rem;
 }
@@ -245,32 +280,38 @@ body {
   width: 100%;
   resize: vertical;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.75rem;
-  font-family: inherit;
-  font-size: 0.95rem;
+  border-radius: 12px;
+  padding: 0.75rem 0.85rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  line-height: 1.55;
   color: var(--text);
   background: var(--bg);
+  transition: border-color 0.15s ease, outline-color 0.15s ease;
 }
 
 .claim-input:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+  border-color: var(--accent);
 }
 
 .analyze-btn {
   display: block;
   width: 100%;
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 10px;
-  padding: 0.8rem;
-  font-size: 0.95rem;
+  border-radius: 12px;
+  padding: 0.85rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .analyze-btn:hover:not(:disabled) {
@@ -278,21 +319,37 @@ body {
 }
 
 .analyze-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.85;
   cursor: default;
+}
+
+/* A quiet, purely presentational "in progress" sweep — ties to the
+   existing :disabled state the three loading phases already set, no JS
+   change needed. Neutralized under prefers-reduced-motion below. */
+.analyze-btn:disabled::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  animation: analyze-sweep 1.6s ease-in-out infinite;
+}
+
+@keyframes analyze-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* ---------- History ---------- */
 
 .history-panel {
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
+  padding-top: var(--space-3);
 }
 
 .history-panel summary {
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-muted);
   list-style: none;
@@ -300,6 +357,11 @@ body {
   min-height: 34px;
   display: flex;
   align-items: center;
+  transition: color 0.15s ease;
+}
+
+.history-panel summary:hover {
+  color: var(--text);
 }
 
 .history-panel summary::-webkit-details-marker {
@@ -307,7 +369,7 @@ body {
 }
 
 .history-body {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .history-list {
@@ -322,10 +384,10 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
+  gap: var(--space-2);
+  padding: 0.55rem 0;
   border-top: 1px solid var(--border);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
 }
 
 .history-item:first-child {
@@ -342,7 +404,7 @@ body {
 
 .history-item-date {
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   flex-shrink: 0;
 }
 
@@ -350,76 +412,98 @@ body {
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.78rem;
+  padding: 0.4rem 0.8rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 600;
   min-height: 34px;
   cursor: pointer;
   color: var(--accent);
   flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.history-restore-btn:hover {
+  background: var(--bg);
+  border-color: #d3cfc2;
 }
 
 .history-privacy-note {
   color: var(--text-muted);
-  font-size: 0.75rem;
-  margin: 0 0 0.6rem;
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  margin: 0 0 var(--space-3);
 }
 
 .history-empty {
   color: var(--text-muted);
-  font-size: 0.85rem;
-  padding: 0.5rem 0;
+  font-size: var(--fs-sm);
+  font-style: italic;
+  padding: var(--space-2) 0;
 }
 
 .history-clear-btn {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
   cursor: pointer;
   text-decoration: underline;
+  text-underline-offset: 2px;
   padding: 0.4rem 0;
   min-height: 34px;
+  transition: color 0.15s ease;
+}
+
+.history-clear-btn:hover {
+  color: var(--contradicted-text);
 }
 
 /* ---------- Shared: errors, badges, collapsible sections ---------- */
 
 .error-message {
-  margin: 1.5rem 0 0;
+  margin: var(--space-5) 0 0;
   background: var(--contradicted-bg);
   color: var(--contradicted-text);
-  border: 1px solid rgba(154, 59, 52, 0.25);
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  font-size: 0.9rem;
+  border: 1px solid rgba(140, 52, 45, 0.22);
+  border-radius: 12px;
+  padding: 0.8rem 1.05rem;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
 }
 
 .result-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: var(--space-5);
+  box-shadow: 0 1px 2px rgba(30, 27, 20, 0.04), 0 8px 20px -14px rgba(30, 27, 20, 0.18);
 }
 
 .result-claim {
-  font-size: 1.05rem;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
   font-style: italic;
-  margin: 0 0 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 var(--space-4);
+  color: var(--text);
 }
 
 .badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 .badge {
   display: inline-block;
   border-radius: 999px;
   padding: 0.3rem 0.75rem;
-  font-size: 0.78rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
   font-weight: 600;
 }
 
@@ -456,30 +540,65 @@ body {
 .confidence-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 
 .confidence-label {
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
 }
 
 .confidence-reason {
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--space-1);
   color: var(--text-muted);
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
 }
 
 .not-source-checked {
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
   color: var(--too-recent-text);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.framing-signals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0 0 var(--space-3);
+}
+
+.framing-signal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: var(--fs-sm);
+}
+
+.framing-signal-label {
+  background: var(--too-recent-bg);
+  color: var(--too-recent-text);
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.framing-signal-note {
+  color: var(--text-muted);
+  line-height: 1.55;
 }
 
 .claim-error {
   color: var(--contradicted-text);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   margin: 0;
 }
 
@@ -489,27 +608,38 @@ body {
 }
 
 .considerations li {
-  margin-bottom: 0.4rem;
+  margin-bottom: var(--space-2);
+  line-height: 1.6;
 }
 
 .result-section {
   border-top: 1px solid var(--border);
-  padding: 0.7rem 0;
+  padding: 0.75rem 0;
 }
 
 .result-section:first-of-type {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .result-section summary {
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--text);
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
   list-style: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  transition: color 0.15s ease;
+}
+
+.result-section summary:hover {
+  color: var(--text);
+}
+
+.result-section[open] summary {
+  color: var(--text);
 }
 
 .result-section summary::-webkit-details-marker {
@@ -528,9 +658,10 @@ body {
 }
 
 .result-section-body {
-  margin-top: 0.6rem;
+  margin-top: 0.65rem;
   color: var(--text);
-  font-size: 0.92rem;
+  font-size: var(--fs-base);
+  line-height: 1.7;
 }
 
 .result-section-body p {
@@ -539,15 +670,17 @@ body {
 
 .related-premises {
   border-top: 1px solid var(--border);
-  padding-top: 0.7rem;
-  margin-top: 0.7rem;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
 }
 
 .related-premises-label {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-muted);
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .related-premises-list {
@@ -561,7 +694,8 @@ body {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.3rem 0.7rem;
+  padding: 0.3rem 0.75rem;
+  font-family: var(--font-ui);
   font-size: 0.8rem;
   color: var(--accent);
   text-decoration: none;
@@ -569,6 +703,12 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.related-premise-chip:hover {
+  border-color: var(--accent);
+  background: var(--bg);
 }
 
 .claim-highlight {
@@ -576,8 +716,8 @@ body {
 }
 
 @keyframes claim-pulse {
-  0% { box-shadow: 0 0 0 3px rgba(58, 90, 125, 0.35); }
-  100% { box-shadow: 0 0 0 3px rgba(58, 90, 125, 0); }
+  0% { box-shadow: 0 0 0 3px rgba(47, 74, 99, 0.35); }
+  100% { box-shadow: 0 0 0 3px rgba(47, 74, 99, 0); }
 }
 
 /* ---------- Source cards ---------- */
@@ -585,31 +725,35 @@ body {
 .source-list {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.65rem;
 }
 
 .source-card {
   display: flex;
-  gap: 0.6rem;
-  padding: 0.6rem;
+  gap: 0.65rem;
+  padding: 0.7rem;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--bg);
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .source-card:hover {
   border-color: var(--accent);
+  box-shadow: 0 4px 12px -8px rgba(30, 27, 20, 0.3);
 }
 
 .source-favicon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   margin-top: 0.15rem;
   flex-shrink: 0;
-  border-radius: 3px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 2px;
 }
 
 .source-card-body {
@@ -618,7 +762,8 @@ body {
 
 .source-title {
   margin: 0 0 0.3rem;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -631,18 +776,89 @@ body {
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .source-meta > span:first-child {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
+  font-weight: 600;
 }
 
 .source-tier-badge {
   padding: 0.15rem 0.5rem;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* ---------- Bottom line (verdict sentence + traffic-light action) ---------- */
+
+/* :not([hidden]) guard — see the identical note on .image-preview above;
+   this codebase has hit the [hidden]-vs-display cascade bug twice already
+   this session and this is a new conditionally-shown element. */
+.bottom-line:not([hidden]) {
+  display: block;
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 0.85rem 1.15rem;
+  box-shadow: 0 1px 2px rgba(30, 27, 20, 0.04), 0 8px 20px -14px rgba(30, 27, 20, 0.2);
+  margin-top: 0.9rem;
+  border-inline-start: 4px solid var(--border);
+}
+
+.bottom-line-green { background: #eef4ea; border-inline-start-color: var(--supported-text); }
+.bottom-line-amber { background: #fbf3e0; border-inline-start-color: var(--mixed-text); }
+.bottom-line-red { background: #f8ebea; border-inline-start-color: var(--contradicted-text); }
+
+.bottom-line-action {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.35rem;
+}
+
+.action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 0.72rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.action-label {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.bottom-line-green .action-icon, .bottom-line-green .action-label { color: var(--supported-text); }
+.bottom-line-amber .action-icon, .bottom-line-amber .action-label { color: var(--mixed-text); }
+.bottom-line-red .action-icon, .bottom-line-red .action-label { color: var(--contradicted-text); }
+
+.bottom-line-sentence {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  line-height: 1.32;
+  color: var(--text);
+  margin: 0 0 0.3rem;
+}
+
+.bottom-line-rationale {
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0;
 }
 
 /* ---------- Verdict strip + dials ---------- */
@@ -650,39 +866,52 @@ body {
 .verdict-strip {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 0.9rem 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(30, 27, 20, 0.04), 0 8px 20px -14px rgba(30, 27, 20, 0.18);
+  margin-top: 0.5rem;
+}
+
+/* Restores the full top gap when there's no bottom line to show (a failed
+   synthesis call, or a history entry saved before this feature existed) —
+   .verdict-strip becomes visually first in that case. */
+.bottom-line[hidden] + .verdict-strip {
   margin-top: 1.5rem;
 }
 
 .verdict-headline {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-2);
   margin-bottom: 0.85rem;
 }
 
 .verdict-label {
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
 }
 
 .verdict-none {
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
+  font-style: italic;
   color: var(--text-muted);
 }
 
 .dials {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .dial {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 0.5rem 0.7rem;
+  transition: border-color 0.15s ease;
+}
+
+.dial[open] {
+  border-color: #d3cfc2;
 }
 
 .dial summary {
@@ -690,7 +919,7 @@ body {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .dial summary::-webkit-details-marker {
@@ -698,11 +927,11 @@ body {
 }
 
 .dial-name {
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
 }
 
 .dial-segments {
@@ -712,12 +941,15 @@ body {
 }
 
 .dial-segment {
-  font-size: 0.72rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.22rem 0.55rem;
+  border-radius: 5px;
   background: var(--bg);
   color: var(--text-muted);
   border: 1px solid var(--border);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .dial-segment.active {
@@ -728,8 +960,9 @@ body {
 }
 
 .dial-justification {
-  margin: 0.5rem 0 0;
-  font-size: 0.8rem;
+  margin: 0.55rem 0 0;
+  font-size: var(--fs-xs);
+  line-height: 1.6;
   color: var(--text-muted);
 }
 
@@ -742,8 +975,8 @@ body {
 .claims-column {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  margin-top: 1.25rem;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
 }
 
 .evidence-rail {
@@ -751,12 +984,14 @@ body {
 }
 
 .rail-group {
-  margin-bottom: 1.25rem;
+  margin-bottom: var(--space-5);
 }
 
 .rail-group-heading {
-  font-size: 0.82rem;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
   font-style: italic;
+  line-height: 1.5;
   color: var(--text-muted);
   margin: 0 0 0.5rem;
 }
@@ -764,17 +999,17 @@ body {
 .disclaimer {
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.8rem;
-  margin-top: 2rem;
+  font-size: var(--fs-xs);
+  margin-top: var(--space-6);
 }
 
 @media (min-width: 520px) {
   .page {
-    padding-top: 3rem;
+    padding-top: var(--space-8);
   }
 
   .page-header h1 {
-    font-size: 1.85rem;
+    font-size: var(--fs-2xl);
   }
 }
 
@@ -834,7 +1069,7 @@ body {
     min-height: 0;
     display: grid;
     grid-template-columns: 1fr 320px;
-    gap: 1.25rem;
+    gap: var(--space-5);
   }
 
   .dashboard-grid.no-rail {
@@ -857,8 +1092,25 @@ body {
     min-height: 120px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 16px;
     padding: 1.1rem;
-    margin-top: 1.25rem;
+    margin-top: var(--space-5);
+  }
+}
+
+/* Respect the OS-level motion preference: neutralize the loading sweep and
+   shorten the handful of other transitions/animations to near-instant. */
+@media (prefers-reduced-motion: reduce) {
+  /* The bare universal selector does NOT match ::before/::after generated
+     content — without listing them explicitly, .analyze-btn:disabled::after's
+     animation-duration below would silently keep running at full speed. */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .analyze-btn:disabled::after {
+    display: none;
   }
 }

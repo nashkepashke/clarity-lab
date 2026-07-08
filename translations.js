@@ -36,6 +36,7 @@ var TRANSLATIONS = {
       analyzeWithImageIdle: "קראו את התמונה",
       phaseTriage: "שובר לגורמים...",
       phaseEvidence: "בודק מקורות...",
+      phaseVerdict: "מגבש מסקנה...",
       extractPhase: "קורא את התמונה..."
     },
     image: {
@@ -50,7 +51,35 @@ var TRANSLATIONS = {
     },
     verdict: {
       overallLabel: "מסקנה כוללת",
-      noResult: "לא הצלחנו לנתח אף אחת מהטענות."
+      noResult: "לא הצלחנו לנתח אף אחת מהטענות.",
+      sentence: {
+        well_supported: "זוהי טענה עובדתית נתמכת היטב.",
+        contradicted: "הטענה הזו נסתרת על ידי הראיות הזמינות.",
+        partly_true_missing_context: "זה נכון בחלקו, אך חסר הקשר חשוב.",
+        unfalsifiable_polarizing: "אי אפשר להוכיח או להפריך את הטענה הזו — והיא מנוסחת באופן מקטב.",
+        likely_unfounded: "יש כמה סימנים לכך שהטענה הזו אינה מבוססת עובדתית.",
+        value_judgment: "זהו שיפוט ערכי, לא טענה עובדתית — אנשים סבירים יכולים לחלוק עליו.",
+        prediction: "זוהי תחזית; התוצאה שלה עדיין לא ידועה.",
+        insufficient_info: "אין מספיק מידע מהימן כדי להעריך את הטענה הזו.",
+        mixed_claims: "הטענות כאן מציגות תמונה מעורבת — חלקן נתמכות וחלקן לא."
+      },
+      rationale: {
+        well_supported: "הראיות תומכות בבירור בטענה.",
+        contradicted: "מקורות אמינים סותרים ישירות את הטענה.",
+        partly_true_missing_context: "החלק העובדתי נכון, אך ההקשר החסר משנה את המשמעות.",
+        unfalsifiable_polarizing: "הניסוח מעורפל מדי לבדיקה ומנוסח באופן שמעורר מחלוקת.",
+        likely_unfounded: "כמה סימני אזהרה מצטברים, גם ללא סתירה ישירה אחת וברורה.",
+        value_judgment: "מדובר בהעדפה או בעמדה, לא בעובדה שניתן לבדוק.",
+        prediction: "האירוע טרם התרחש, ולכן אין עדיין מה לבדוק.",
+        insufficient_info: "החיפוש לא העלה מספיק מידע מהימן כדי להכריע.",
+        mixed_claims: "חלק מהטענות כאן נתמכות וחלק לא — אין דפוס אחיד לכל הקלט."
+      },
+      action: {
+        safe_to_share: "בטוח לשתף",
+        share_with_caution: "שתפו בזהירות",
+        dont_spread: "אל תפיצו את זה",
+        opinion_judge_yourself: "דעה — שפטו בעצמכם"
+      }
     },
     claim: {
       errorMessage: "הניתוח של הטענה הזו נכשל. ייתכן שזמני — נסו שוב.",
@@ -73,7 +102,9 @@ var TRANSLATIONS = {
       feasibility: "האם זה בר-ביצוע?",
       tension: "ערכים מנוגדים",
       steelman: "הגרסה החזקה וההוגנת ביותר",
-      strawmanWarning: "עיוות נפוץ שכדאי להיזהר ממנו"
+      strawmanWarning: "עיוות נפוץ שכדאי להיזהר ממנו",
+      missingContext: "מה חסר",
+      mostRelevantSourceCheck: "המקור הרלוונטי ביותר"
     },
     badges: {
       type: {
@@ -104,6 +135,14 @@ var TRANSLATIONS = {
         "Established journalism": "עיתונות מבוססת",
         "Fact-check org": "ארגון בדיקת עובדות",
         Other: "אחר"
+      },
+      framingSignal: {
+        missing_baseline: "חסר קו בסיס להשוואה",
+        cherry_picked_timeframe: "בחירת טווח זמן נוחה",
+        false_binary: "דיכוטומיה כוזבת",
+        emotional_intensification: "הגברה רגשית",
+        anecdote_as_data: "מקרה בודד כאילו הוא נתון מייצג",
+        unsourced_authority: "סמכות ללא מקור מזוהה"
       }
     },
     epistemicProfile: {
@@ -244,6 +283,7 @@ var TRANSLATIONS = {
       analyzeWithImageIdle: "Read the image",
       phaseTriage: "Breaking down the claim...",
       phaseEvidence: "Checking sources...",
+      phaseVerdict: "Summarizing the verdict...",
       extractPhase: "Reading image..."
     },
     image: {
@@ -258,7 +298,35 @@ var TRANSLATIONS = {
     },
     verdict: {
       overallLabel: "Overall verdict",
-      noResult: "None of the claims could be analyzed."
+      noResult: "None of the claims could be analyzed.",
+      sentence: {
+        well_supported: "This is a well-supported factual claim.",
+        contradicted: "This claim is contradicted by the available evidence.",
+        partly_true_missing_context: "This is partly true but leaves out important context.",
+        unfalsifiable_polarizing: "This can't be proven or disproven — and it's framed in a polarizing way.",
+        likely_unfounded: "There are several signs this claim is not factually grounded.",
+        value_judgment: "This is a value judgment, not a factual claim — reasonable people disagree.",
+        prediction: "This is a prediction; its outcome isn't knowable yet.",
+        insufficient_info: "There isn't enough reliable information to assess this.",
+        mixed_claims: "The claims here paint a mixed picture — some hold up, some don't."
+      },
+      rationale: {
+        well_supported: "The evidence clearly backs this claim up.",
+        contradicted: "Credible sources directly contradict the claim.",
+        partly_true_missing_context: "The factual core holds, but missing context changes the picture.",
+        unfalsifiable_polarizing: "It's worded too vaguely to check, and framed to provoke a reaction.",
+        likely_unfounded: "Several warning signs add up, even without one clean contradiction.",
+        value_judgment: "This is a preference or stance, not a checkable fact.",
+        prediction: "It hasn't happened yet, so there's nothing to verify.",
+        insufficient_info: "Search didn't turn up enough reliable information to decide.",
+        mixed_claims: "Some claims here hold up and some don't — no single pattern fits the whole input."
+      },
+      action: {
+        safe_to_share: "Safe to share",
+        share_with_caution: "Share with caution",
+        dont_spread: "Don't spread this",
+        opinion_judge_yourself: "Opinion — judge for yourself"
+      }
     },
     claim: {
       errorMessage: "Analysis of this claim failed. This may be temporary — try again.",
@@ -281,7 +349,9 @@ var TRANSLATIONS = {
       feasibility: "Is this feasible?",
       tension: "Values in tension",
       steelman: "Steelman: strongest fair version",
-      strawmanWarning: "Strawman to watch for"
+      strawmanWarning: "Strawman to watch for",
+      missingContext: "What's missing",
+      mostRelevantSourceCheck: "Most relevant source"
     },
     badges: {
       type: {
@@ -312,6 +382,14 @@ var TRANSLATIONS = {
         "Established journalism": "Established journalism",
         "Fact-check org": "Fact-check org",
         Other: "Other"
+      },
+      framingSignal: {
+        missing_baseline: "Missing baseline",
+        cherry_picked_timeframe: "Cherry-picked timeframe",
+        false_binary: "False binary",
+        emotional_intensification: "Emotional intensification",
+        anecdote_as_data: "Anecdote presented as data",
+        unsourced_authority: "Unsourced authority"
       }
     },
     epistemicProfile: {

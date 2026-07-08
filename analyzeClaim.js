@@ -1,15 +1,17 @@
 // analyzeClaim.js
 //
 // This is the ONLY file page logic talks to for analysis. Internally it's
-// two network calls — /api/triage (decompose + type) then /api/evidence
-// (per-claim grounded/ungrounded analysis) — but app.js only sees one
-// finished structure: { claims, epistemicProfile, overallAssessment }.
-// Errors reject with an Error carrying a .code safe to look up in
-// translations.js; no English text lives in this file.
+// up to three network calls — /api/triage (decompose + type), /api/evidence
+// (per-claim grounded/ungrounded analysis), then /api/verdict (synthesizes
+// a plain-language bottom line from the finished per-claim results) — but
+// app.js only sees one finished structure:
+// { claims, epistemicProfile, overallAssessment, verdict }. Errors reject
+// with an Error carrying a .code safe to look up in translations.js; no
+// English text lives in this file.
 //
-// onProgress(phase), if given, is called with "triage-done" then
-// "evidence-done" so app.js can update the loading label without this
-// file needing to know any translated strings.
+// onProgress(phase), if given, is called with "triage-done", then
+// "evidence-done", then "verdict-done" so app.js can update the loading
+// label without this file needing to know any translated strings.
 //
 // Per-claim result shape (see api/evidence.js for the authoritative
 // version): { id, claimText, type, error, errorCode?, assessment?,
@@ -70,11 +72,35 @@ function analyzeClaim(text, lang, onProgress) {
       if (onProgress) onProgress("evidence-done");
 
       var claims = evidenceBody.results;
-      return {
+      var combined = {
         claims: claims,
         epistemicProfile: buildEpistemicProfile(claims),
         overallAssessment: computeOverallAssessment(claims)
       };
+
+      var hasValidClaim = claims.some(function (c) { return !c.error; });
+      if (!hasValidClaim) {
+        combined.verdict = null;
+        if (onProgress) onProgress("verdict-done");
+        return combined;
+      }
+
+      // A failed synthesis call is not fatal — the detailed per-claim
+      // analysis above is already complete and useful on its own, so this
+      // degrades to no bottom line rather than failing the whole request.
+      return postJSON("/api/verdict", { claims: claims, lang: lang })
+        .then(function (verdictBody) {
+          combined.verdict = verdictBody;
+          return combined;
+        })
+        .catch(function () {
+          combined.verdict = null;
+          return combined;
+        })
+        .then(function (result) {
+          if (onProgress) onProgress("verdict-done");
+          return result;
+        });
     });
   });
 }

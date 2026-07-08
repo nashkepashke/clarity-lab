@@ -8,6 +8,9 @@
     },
     "api/extract.js": {
       "maxDuration": 20
+    },
+    "api/verdict.js": {
+      "maxDuration": 20
     }
   }
 }

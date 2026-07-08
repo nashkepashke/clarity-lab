@@ -4,11 +4,12 @@ A small personal practice project: paste in a claim, a promise, or a whole
 paragraph and get it broken down into its individual claims, each typed,
 assessed, and — where it's a checkable factual/causal claim — checked
 against real web sources via Gemini's Google Search grounding. Renders as
-a dashboard: an overall verdict strip with four "epistemic profile" dials,
-a card per claim showing only the analysis modules relevant to its type,
-and an evidence rail of real, tiered sources. Plain HTML/CSS/JS on the
-frontend, two Vercel serverless functions on the backend. No framework,
-no build step.
+a dashboard: a plain-language bottom-line verdict with a traffic-light
+share/don't-share recommendation, an overall verdict strip with four
+"epistemic profile" dials, a card per claim showing only the analysis
+modules relevant to its type, and an evidence rail of real, tiered
+sources. Plain HTML/CSS/JS on the frontend, four Vercel serverless
+functions on the backend. No framework, no build step.
 
 Bilingual: Hebrew (default) and English, with the whole UI mirroring
 (RTL/LTR) and the analysis itself coming back in whichever language is
@@ -26,8 +27,9 @@ active.
    with a "is this the claim?" prompt — you review/edit it and press the
    button again to actually analyze it. See **Image input** below.
 2. Press "Break it down" / "פרקו את הטענה". The button label walks through
-   two honest phases — "breaking down the claim" then "checking sources"
-   — because this is genuinely two network calls, not one long spinner.
+   three honest phases — "breaking down the claim", "checking sources",
+   then "summarizing the verdict" — because this is genuinely three
+   sequential network calls, not one long spinner.
 3. **`POST /api/triage`** (Call 1, no grounding): decomposes the input
    into 1-5 atomic claims and types each one as `Empirical`, `Causal`,
    `Prediction-or-promise`, `Normative`, or `Mixed`. For any `Normative`
@@ -44,9 +46,17 @@ active.
    `Normative`/`Mixed` claims are analyzed just as deeply but without
    grounding, since there's nothing to search-check in a value judgment
    or an unresolved future.
-5. The frontend combines both responses into one dashboard: a verdict
-   strip, a card per claim, and an evidence rail. See **Dashboard**
-   below.
+5. **`POST /api/verdict`** (Call 3, ungrounded, only reached if at least
+   one claim from step 4 analyzed successfully): synthesizes the whole
+   submission's per-claim results into one plain-language bottom line — a
+   `verdictType` from a fixed 9-value enum plus an optional short custom
+   clause. A failure here is caught and swallowed, not propagated — the
+   detailed per-claim analysis is already complete and useful on its own,
+   so this degrades to no bottom line rather than failing the whole
+   request. See **Bottom line** below.
+6. The frontend combines all three responses into one dashboard: the
+   bottom line, a verdict strip, a card per claim, and an evidence rail.
+   See **Dashboard** below.
 
 ## Image input
 
@@ -129,18 +139,19 @@ camera roll included, rather than forcing the camera).
 
 | File | Purpose |
 |---|---|
-| `index.html` | Page structure only — chips, input, language toggle, history panel, and empty slots for the verdict strip / claim cards / evidence rail / error message. No hardcoded user-facing text; everything comes from `translations.js`. |
-| `translations.js` | The single source of truth for every user-facing string, keyed by language: labels, section titles, badge display labels (mapped from the API's fixed English enum/type values), epistemic-profile dial names/levels/justification templates, source tier labels, error messages (by code), history/disclaimer text. |
-| `styles.css` | Calm neutral palette, badge colors per type/assessment/confidence/source-tier. Logical properties throughout (`text-align: start`, `padding-inline-start`, flex/grid) so RTL mirrors automatically. From ~900px up, the dashboard becomes a fixed-height shell (header/input/verdict stay put) with the claims column and evidence rail scrolling independently; below that it's a normal stacked, scrolling mobile page. |
-| `app.js` | Page logic: language state, the two-phase loading label, rendering the verdict strip/dials/claim cards/evidence rail, and the localStorage history panel. Doesn't know how the analysis is produced. |
-| `analyzeClaim.js` | The only file that talks to the backend. Calls `/api/triage` then `/api/evidence`, reports progress via an `onProgress` callback, and combines both responses into `{ claims, epistemicProfile, overallAssessment }` — `app.js` never sees that this is two calls. Also computes the epistemic profile (see below). Rejects with an `Error` carrying a `.code`, never English text. |
+| `index.html` | Page structure only — chips, input, language toggle, history panel, and empty slots for the bottom line / verdict strip / claim cards / evidence rail / error message. No hardcoded user-facing text; everything comes from `translations.js`. `<head>` also loads the two Google Fonts used by `styles.css` (see **Visual design**). |
+| `translations.js` | The single source of truth for every user-facing string, keyed by language: labels, section titles, badge display labels (mapped from the API's fixed English enum/type values), epistemic-profile dial names/levels/justification templates, verdict-type base sentences/rationales/action labels, framing-signal labels, source tier labels, error messages (by code), history/disclaimer text. |
+| `styles.css` | An editorial/think-tank visual system: a Frank Ruhl Libre serif for headline moments paired with Assistant (Hebrew/Latin humanist sans) everywhere else, a named type/spacing scale, a warm-paper/ink/single-accent palette with WCAG-checked desaturated traffic-light colors, badge colors per type/assessment/confidence/source-tier. See **Visual design**. Logical properties throughout (`text-align: start`, `padding-inline-start`, flex/grid) so RTL mirrors automatically. From ~900px up, the dashboard becomes a fixed-height shell (header/input/verdict stay put) with the claims column and evidence rail scrolling independently; below that it's a normal stacked, scrolling mobile page. |
+| `app.js` | Page logic: language state, the three-phase loading label, rendering the bottom line/verdict strip/dials/claim cards/evidence rail, `VERDICT_ACTION_MAP` (the auditable verdictType→traffic-light table), and the localStorage history panel. Doesn't know how the analysis is produced. |
+| `analyzeClaim.js` | The only file that talks to the backend. Calls `/api/triage`, then `/api/evidence`, then (if at least one claim succeeded) `/api/verdict`, reports progress via an `onProgress` callback, and combines all three responses into `{ claims, epistemicProfile, overallAssessment, verdict }` — `app.js` never sees that this is three calls. Also computes the epistemic profile (see below). A `/api/verdict` failure is caught and degrades to `verdict: null` rather than failing the request. Rejects with an `Error` carrying a `.code`, never English text. |
 | `api/triage.js` | Call 1 — decomposition + typing + premise extraction. |
 | `api/evidence.js` | Call 2 — per-claim grounded/ungrounded analysis, with a same-claim fallback (grounded → ungrounded) if the grounding-tool call itself fails, and a "zero sources found → force `Not enough information`" safety net. |
 | `api/extract.js` | Image-to-claim transcription — a separate, ungrounded call, not part of the triage/evidence pipeline. See **Image input**. |
-| `api/_lib/gemini.js` | Shared by all three routes (underscore-prefixed so Vercel doesn't treat it as a route itself): the retry-on-503 Gemini caller, source-tiering domain heuristic, shared enums/constants, and `callGeminiJSON`'s optional `imageParts` (inline image data) support. |
-| `vercel.json` | Per-function `maxDuration` — 20s for triage, 45s for evidence (grounded calls plus the ungrounded-fallback retry need real headroom), 20s for extract. |
+| `api/verdict.js` | Call 3 — synthesizes the finished per-claim results into one `verdictType` + optional `customClause`. See **Bottom line**. |
+| `api/_lib/gemini.js` | Shared by all four routes (underscore-prefixed so Vercel doesn't treat it as a route itself): the retry-on-503 Gemini caller, source-tiering domain heuristic, shared enums/constants, and `callGeminiJSON`'s optional `imageParts` (inline image data) support. |
+| `vercel.json` | Per-function `maxDuration` — 20s for triage, 45s for evidence (grounded calls plus the ungrounded-fallback retry need real headroom), 20s for extract, 20s for verdict. |
 | `.env.example` | Template for the one required environment variable, `GEMINI_API_KEY`. Copy to `.env` for local testing — never commit the real key. |
-| `package.json` | Just pins `node >= 18` (both functions rely on the built-in global `fetch`). |
+| `package.json` | Just pins `node >= 18` (the functions rely on the built-in global `fetch`). |
 
 ## Claim types and the module map
 
@@ -156,10 +167,17 @@ conditional schemas, so each type gets its own fixed shape):
 
 - **Empirical**: `evidenceSummary`, `denominatorCheck` (compared to
   what — absolute vs. per-capita, timeframe), `precisionCheck`
-  (falsifiable or vague), `sources[]`, `grounded`.
+  (falsifiable or vague), `mostRelevantSourceCheck` (names the single
+  most-relevant source type/body for *this* claim — e.g. "the CBS Labour
+  Force Survey" — and says plainly whether search actually surfaced it,
+  closing the gap between a source sounding authoritative and it actually
+  being checked), `missingContext` (the single most important missing
+  piece of context/data that would most change how the claim reads),
+  `sources[]`, `grounded`.
 - **Causal**: `evidenceSummary`, `alternativeExplanations[]`,
   `correlationCautionNeeded` + `correlationCautionNote`,
-  `distinguishingEvidence`, `sources[]`, `grounded`.
+  `distinguishingEvidence`, `mostRelevantSourceCheck`, `missingContext`,
+  `sources[]`, `grounded`.
 - **Prediction-or-promise**: `referenceClassAndBaseRate`, `feasibility`.
   `assessment` is *hardcoded* to `"Outcome not yet knowable"` by the code
   after the call, never asked of the model — "never true/false" is
@@ -169,6 +187,14 @@ conditional schemas, so each type gets its own fixed shape):
   result set). Never grounded.
 - **Mixed**: base fields only — for claims that genuinely fuse more than
   one of the above and can't be cleanly split.
+
+Every type (including Mixed) can also carry `framingSignals[]` — neutral,
+observable-only flags for how the claim is *framed*, not its content:
+`missing_baseline`, `cherry_picked_timeframe`, `false_binary`,
+`emotional_intensification`, `anecdote_as_data`, `unsourced_authority`,
+each with a one-line note. The model is instructed that an empty array is
+the normal, expected answer for a plainly-stated claim — these are meant
+to flag real issues, not pad every result with manufactured caution.
 
 The `assessment` enum itself has 7 values: `Supported`, `Mostly
 supported`, `Mixed or context-dependent`, `Contradicted`, `Not enough
@@ -216,16 +242,24 @@ the Prediction-only hardcoded `Outcome not yet knowable`.
   confidently *contradicted* the claim rather than reflexively hiding
   behind "too recent" — the rule is meant to catch thin/overconfident
   corroboration, not suppress a genuinely well-evidenced answer.
-- Output tokens are budgeted generously (3072 for evidence calls) —
-  during testing the Causal/Empirical schemas' several full-sentence
-  fields genuinely truncated mid-JSON at a lower budget, which fails
-  `JSON.parse` outright. Worth remembering if new fields are added later.
+- Output tokens are budgeted generously (4096 for evidence calls, raised
+  from 3072 when `framingSignals`/`mostRelevantSourceCheck`/
+  `missingContext` were added) — during testing the Causal/Empirical
+  schemas' several full-sentence fields genuinely truncated mid-JSON at a
+  lower budget, which fails `JSON.parse` outright. The same trap bit
+  `api/verdict.js` too: its actual JSON output is tiny (one enum value
+  plus a short clause), but a "thinking" model's internal reasoning still
+  eats into `maxOutputTokens` before it ever writes that output, so a
+  512-token budget failed most real multi-claim inputs outright in live
+  testing — raised to 2048. Worth remembering for any future field or
+  endpoint: the visible JSON size is not a reliable guide to the token
+  budget it actually needs.
 
 ## Epistemic profile
 
 Four dials, computed **in code** from the triage + evidence results —
-deliberately not a third Gemini call, so the architecture stays "two
-model calls" with no added latency/cost:
+deliberately not an extra Gemini call on top of triage + evidence, unlike
+the bottom line below (which genuinely does need one — see why there):
 
 - **checkability** — `settled-by-evidence` / `partially` /
   `values-or-prediction`, from the Empirical+Causal share of claims.
@@ -241,8 +275,183 @@ model calls" with no added latency/cost:
 No numeric score anywhere — each dial is a 3-way categorical level plus a
 translated, templated one-line justification.
 
+## Bottom line: verdict sentence + traffic-light action
+
+Unlike the epistemic profile above, this **is** a third Gemini call
+(`api/verdict.js`) rather than code-only aggregation — deliberately so.
+Picking `well_supported` vs. `partly_true_missing_context` vs.
+`likely_unfounded` vs. `unfalsifiable_polarizing` needs to weigh
+assessment, confidence, framing signals, and claim-type mix holistically,
+the same kind of judgment call the epistemic-profile dials are simple
+counts/categoricals for. It's a separate endpoint rather than embedded
+inside `api/evidence.js`, matching this app's existing philosophy of
+honest, distinct phases and keeping `api/evidence.js` — already the most
+complex, most-tested file — untouched by this logic. No numeric score
+here either: the model picks a `verdictType` from a fixed enum, never a
+number, and the traffic-light *action* is never the model's call at all.
+
+**The verdict type** (`verdictType`, plus an optional short `customClause`
+for specificity) is one of 9 fixed values, each mapped to a translated
+base sentence in `translations.js` — the model only ever picks the type,
+never writes the sentence, which is what keeps the wording consistent and
+fully translatable:
+
+| verdictType | Example base sentence |
+|---|---|
+| `well_supported` | "This is a well-supported factual claim." |
+| `contradicted` | "This claim is contradicted by the available evidence." |
+| `partly_true_missing_context` | "This is partly true but leaves out important context." |
+| `unfalsifiable_polarizing` | "This can't be proven or disproven — and it's framed in a polarizing way." |
+| `likely_unfounded` | "There are several signs this claim is not factually grounded." |
+| `value_judgment` | "This is a value judgment, not a factual claim — reasonable people disagree." |
+| `prediction` | "This is a prediction; its outcome isn't knowable yet." |
+| `insufficient_info` | "There isn't enough reliable information to assess this." |
+| `mixed_claims` | "The claims here paint a mixed picture — some hold up, some don't." |
+
+`customClause` is a short trailing clause the model may add for
+specificity (e.g. "confirmed by three independent government sources"),
+appended directly after the base sentence — empty when the base sentence
+already says enough. The system instruction explicitly distinguishes the
+two easiest types to conflate: `contradicted` is for a direct,
+clean-source contradiction; `likely_unfounded` is for multiple independent
+warning signs (framing signals, no sources found, thin reasoning) adding
+up to real doubt without one clean contradicting source.
+
+**The action (traffic-light) is a single explicit, auditable lookup table
+in `app.js`** (`VERDICT_ACTION_MAP`) — not model judgment, per design:
+
+| verdictType | Color | Label |
+|---|---|---|
+| `well_supported` | 🟢 green | Safe to share |
+| `contradicted` | 🔴 red | Don't spread this |
+| `likely_unfounded` | 🔴 red | Don't spread this |
+| `partly_true_missing_context` | 🟡 amber | Share with caution |
+| `unfalsifiable_polarizing` | 🟡 amber | Share with caution |
+| `insufficient_info` | 🟡 amber | Share with caution |
+| `mixed_claims` | 🟡 amber | Share with caution |
+| `value_judgment` | 🟡 amber | Opinion — judge for yourself |
+| `prediction` | 🟡 amber | Opinion — judge for yourself |
+
+`value_judgment` and `prediction` deliberately get their own label rather
+than "share with caution" — the point for an opinion or an unresolved
+prediction isn't share-worthiness, it's "form your own view." Color is
+never the only signal: a plain Unicode glyph (✓ / ⚠ / ✕, matching this
+app's existing icon-free convention) is always paired with the translated
+label text.
+
+**Feeding the synthesis call**: `api/verdict.js` builds a compact text
+summary per claim (type, assessment, confidence, whether it was source-
+checked, `framingSignals`, and — critically — `missingContext`) rather
+than passing the full verbose per-claim objects, to keep the prompt small.
+Leaving `missingContext` out of that summary was an actual bug caught in
+live testing: a claim assessed `Supported` with a real, substantive
+`missingContext` note (a wage-growth claim where part of the rise was a
+war-driven statistical artifact) was still coming back `well_supported`,
+because the verdict model never saw the missing-context note at all. Once
+it was added to the summary, plus an explicit instruction that
+`well_supported` requires *no* significant missing context, the same
+claim correctly came back `partly_true_missing_context`.
+
+**Verified live** against the model's own real judgment (not mocked) on
+six scenarios in Hebrew — a solid factual claim, a false one, a
+partly-true one, a polarizing-but-unfalsifiable one, a promise, and a
+pure value claim — plus three English spot-checks, all landing on the
+expected `verdictType` and the correspondingly correct traffic-light
+color/label after the fixes above. One nuance worth noting: a Normative
+claim is often paired with a factual premise `api/triage.js` extracted
+from inside it (e.g. "this unfair law raised unemployment" → a Normative
+claim plus a linked Empirical one) — the synthesis instruction explicitly
+tells the model to let the Normative claim's own nature lead
+(`value_judgment`) rather than defaulting to `mixed_claims` just because
+two claims are present, since the premise is usually a supporting detail,
+not an equally-weighted second topic.
+
+**A `verdict: null`** (the synthesis call failed, or — for old history
+entries — the field doesn't exist at all) simply hides the bottom-line
+block; the rest of the dashboard renders exactly as it would otherwise.
+Same field-presence-gating principle as everywhere else in this app.
+
+## Visual design
+
+A deliberate pass toward "quality editorial / think-tank," not a default
+framework look — entirely a `styles.css` change (plus two font `<link>`
+tags in `index.html`'s `<head>`); no analysis logic, verdict/action
+mapping, or data model touched.
+
+- **Type pairing**: a serif for the handful of headline moments, a sans
+  for everything else — the classic editorial pairing, not two competing
+  UI fonts. **Frank Ruhl Libre** (a refined literary serif with real
+  Hebrew pedigree) for the page `<h1>` and — most importantly — the
+  bottom-line verdict sentence, the one place on the page meant to read as
+  a headline rather than a UI label. **Assistant** (a humanist sans
+  purpose-built for Hebrew/Latin pairing) for every button, badge, label,
+  and body of text. Both were chosen specifically for genuinely strong
+  native Hebrew glyph coverage — not a Latin face hoping Hebrew falls back
+  gracefully, which would have been a real correctness risk given Hebrew
+  is this app's default language. Loaded via Google Fonts `<link>` tags
+  with `display=swap` and `preconnect` hints rather than committing font
+  binaries into the repo, keeping the "no build step, plain files" ethos
+  intact at the cost of one third-party request — the right tradeoff at
+  this project's scale. Verified live: `document.fonts.status` reports
+  `"loaded"` and the computed `font-family` on both the heading and body
+  resolve to the intended faces, not a silent system-font fallback.
+- **Type scale and spacing scale**: both replaced with named CSS custom
+  properties (`--fs-xs` through `--fs-2xl`, `--space-1` through
+  `--space-8`) instead of scattered one-off `rem` values, for visible,
+  intentional rhythm. Base body line-height moved from 1.5 → 1.6 — Hebrew
+  reads more comfortably with more open leading than Latin typographic
+  convention assumes — with long-form claim-card section body text up to
+  1.7.
+- **Palette**: the existing warm-paper background and dark-ink text were
+  already doing their job and were kept; the accent deepened slightly
+  toward "ink" rather than "corporate-SaaS blue," and the traffic-light
+  functional colors (already desaturated, non-candy) were refined toward
+  a forest/ochre/oxblood register. Every text-on-tint pairing that
+  actually appears in the UI (badges, the bottom-line block in all three
+  colors, category badges) was checked against WCAG AA programmatically
+  (≥4.5:1 body text, ≥3:1 large/UI text) rather than eyeballed — all pass,
+  most well above the minimum. Color was already never the only signal
+  (icon glyph + translated label always accompany it); this pass didn't
+  change that, only tightened the color values themselves.
+- **The bottom line**, being the hero, got the most direct attention: a
+  small colored eyebrow row (icon + micro-caps action label) sits above
+  the verdict sentence set large in the serif with tight leading, with the
+  rationale smaller and muted below — reading as a considered rating card,
+  not an alert box. This is also the block most likely to blow the
+  hard-won desktop no-scroll budget (it already has, twice, from far
+  smaller changes) — re-verified at 1280/1440px in both languages after
+  the redesign; it held without needing any padding trims this time.
+- **Dials** kept their flat horizontal-segment concept (still no
+  gauges/needles/emoji) but with a tighter, more architectural corner
+  radius and cleaner micro-caps label typography. **Claim cards** got a
+  serif italic treatment for the quoted claim text (a natural pull-quote
+  convention), a two-layer shadow for real but still subtle elevation
+  instead of the previous flat one, and more considered section-header
+  typography. **Source cards** got a cleaner bordered favicon container
+  and tier badges rendered as small refined micro-caps chips, aiming at
+  "looks credible," per the goal.
+- **Loading state**: a quiet, purely CSS sweep animation tied to the
+  existing `:disabled` state on the analyze button — no JS/logic change,
+  since the three phase labels already existed. **Motion** generally: a
+  `@media (prefers-reduced-motion: reduce)` block (previously absent)
+  neutralizes it and shortens the handful of other transitions. One real
+  bug caught here: the bare universal selector (`*`) does **not** match
+  `::before`/`::after` generated content — without listing them
+  explicitly (`*, *::before, *::after`), the reduced-motion override would
+  have silently left the loading sweep's `animation-duration` at full
+  speed even though `prefers-reduced-motion: reduce` correctly matched.
+  Caught by directly checking the pseudo-element's computed style in a
+  Playwright context with `reducedMotion: "reduce"` set, not by assuming
+  the universal selector worked as it reads.
+
 ## Dashboard
 
+- **Bottom line**: the verdict sentence + traffic-light action (see
+  above), rendered first — before the verdict strip, before the claim
+  cards. A tinted background and a colored `border-inline-start` (so it
+  mirrors correctly in RTL) match the traffic-light color. Gated on
+  `verdict` being present; hidden entirely otherwise. On mobile this is
+  simply the first card in the stack.
 - **Verdict strip**: overall assessment (all claims agree → that value,
   else `Mixed or context-dependent`) plus the four dials as plain labeled
   3-segment indicators — explicitly no gauges/needles. Each dial is a
@@ -250,16 +459,21 @@ translated, templated one-line justification.
   collapsible pattern as the claim card sections.
 - **Desktop** (~900px+): a true no-scroll shell. `.page` is
   `height: 100vh` and a column flexbox; the header, input card, and
-  disclaimer keep their natural size, and `#dashboard-area` (verdict
-  strip + the claim-cards/evidence-rail grid) is the one region that
-  grows to fill what's left — with `.verdict-strip` staying natural-size
-  inside it and `.dashboard-grid`'s row stretching to fill the
-  remainder. `.claims-column` and `.evidence-rail` both get
+  disclaimer keep their natural size, and `#dashboard-area` (bottom line
+  + verdict strip + the claim-cards/evidence-rail grid) is the one region
+  that grows to fill what's left — with the bottom line and `.verdict-strip`
+  staying natural-size inside it and `.dashboard-grid`'s row stretching to
+  fill the remainder. `.claims-column` and `.evidence-rail` both get
   `overflow-y: auto`, so a long analysis scrolls *inside those two
   regions*, not the page — the verdict and all four dials stay visible
-  the whole time. Verified: at 1280/1440px with a long 5-claim analysis,
-  the verdict strip and all four dials render fully on-screen with zero
-  scrolling, in both languages.
+  the whole time. Verified: at 1280/1440px with a long 5-claim analysis
+  *and* the bottom line visible, the bottom line, verdict strip, and all
+  four dials render fully on-screen with zero scrolling, in both
+  languages. Adding the bottom line block cost real height and briefly
+  broke this goal by ~24px — re-closed with the same kind of small,
+  proportionate trims as before (this time: the bottom line's own
+  padding/margin, plus a further trim to `.verdict-strip`'s top margin)
+  rather than one drastic cut, then re-verified.
   - Two things make this robust where an earlier attempt at the same
     idea wasn't. First, the flex-sizing rules are on `#dashboard-area`
     itself — the earlier version applied them to `.dashboard-grid`, but
@@ -296,7 +510,11 @@ translated, templated one-line justification.
   (`claimBreakdownHistory`, capped at 20 — oldest dropped first) as
   `{ savedAt, lang, originalText, data }`, where `data` is the *entire*
   combined result (`claims`, `epistemicProfile`, `overallAssessment`,
-  every grounded source). A panel near the input lists entries newest
+  `verdict`, every grounded source). `verdict` landed in storage with no
+  extra code needed — `pushHistoryEntry` already stores whatever
+  `analyzeClaim()` returns, and old entries from before this field existed
+  just render with the bottom line hidden (see **Bottom line** above). A
+  panel near the input lists entries newest
   first — truncated claim text, a relative timestamp ("2 hours ago",
   falling back to an absolute date past 30 days), and the overall
   assessment badge — and clicking one re-renders it instantly from
@@ -327,10 +545,11 @@ translated, templated one-line justification.
 
 ## Error handling
 
-Both `api/triage.js` and `api/evidence.js` return a short `error` *code*
-(`rate_limited`, `model_overloaded`, `bad_request`, `upstream_unreachable`,
-`upstream_error`, `no_result`, `invalid_response`, `server_misconfigured`)
-plus an English `message` that's only for server-side logs. `analyzeClaim.js`
+`api/triage.js`, `api/evidence.js`, and `api/verdict.js` all return a short
+`error` *code* (`rate_limited`, `model_overloaded`, `bad_request`,
+`upstream_unreachable`, `upstream_error`, `no_result`, `invalid_response`,
+`server_misconfigured`) plus an English `message` that's only for
+server-side logs. `analyzeClaim.js`
 turns HTTP failures into an `Error` carrying that code (or `network_error`
 if the request never reached the server at all); `app.js` looks the code
 up in `translations.js` to show it in the current language. Per-claim
@@ -356,6 +575,6 @@ fabricated result.
 3. Deploy with Vercel (Git-connected project, or `vercel --prod`).
 
 There's no separate build step — the frontend files are served as
-static files, and `api/triage.js`/`api/evidence.js` are auto-detected as
-serverless functions by their location under `api/` (`api/_lib/` is
+static files, and each `api/*.js` file is auto-detected as its own
+serverless function by its location under `api/` (`api/_lib/` is
 excluded by Vercel's underscore-prefix convention).

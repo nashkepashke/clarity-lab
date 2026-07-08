@@ -15,8 +15,44 @@ const MAX_CLAIMS_PER_REQUEST = 12;
 // Generous headroom: these schemas pack several full-sentence fields (plus,
 // for Empirical/Causal, a "thinking" model's internal reasoning eats into
 // the same budget), and a truncated response fails JSON.parse outright.
-const MAX_OUTPUT_TOKENS = 3072;
+// Raised from 3072 -> 4096 when framingSignals/mostRelevantSourceCheck/
+// missingContext were added, rather than waiting to discover the same
+// truncation failure again on the now-richer Empirical/Causal schemas.
+const MAX_OUTPUT_TOKENS = 4096;
 const GROUNDING_TOOLS = [{ google_search: {} }];
+
+const FRAMING_SIGNAL_TYPES = [
+  "missing_baseline",
+  "cherry_picked_timeframe",
+  "false_binary",
+  "emotional_intensification",
+  "anecdote_as_data",
+  "unsourced_authority"
+];
+
+const FRAMING_SIGNALS_FIELD = {
+  type: "ARRAY",
+  items: {
+    type: "OBJECT",
+    properties: {
+      signal: { type: "STRING", enum: FRAMING_SIGNAL_TYPES },
+      note: { type: "STRING" }
+    },
+    required: ["signal", "note"]
+  }
+};
+
+const FRAMING_SIGNALS_INSTRUCTION =
+  "Also assess framingSignals: neutral, observable-only flags for how the claim is FRAMED " +
+  "(never a claim about anyone's intent). Only include a signal if it is actually present — " +
+  "an empty array is the normal, expected answer for a plainly-stated claim; do not pad the " +
+  "list to seem thorough. Choose only from: missing_baseline (a change/effect stated with no " +
+  "reference point), cherry_picked_timeframe (a timeframe chosen that flatters the point), " +
+  "false_binary (presented as only two options when more exist), emotional_intensification " +
+  "(loaded/alarming language doing work that evidence should), anecdote_as_data (a single " +
+  "story presented as if it were representative), unsourced_authority (an unnamed or vague " +
+  "'experts say' / 'studies show' with no specific source). Give each included signal a " +
+  "one-line, neutral note explaining what you observed.";
 
 const NOT_SOURCE_CHECKED_NOTE = {
   he: " (לא בוצע חיפוש מקורות עבור ניתוח זה; זו הערכה כללית בלבד.)",
@@ -40,7 +76,11 @@ const EVIDENCE_RULES =
   "rather than guessing. If you end up reasoning from general knowledge rather than a specific " +
   "source you found, say so explicitly in evidenceSummary. For claims in Hebrew or about " +
   "Israel, prefer Hebrew-language and Israeli sources where relevant and available. Never " +
-  "assign a numeric score or percentage — assessment is categorical only.";
+  "assign a numeric score or percentage — assessment is categorical only. Reward specificity " +
+  "over hedging: a concrete figure, named source, or named alternative is always better than " +
+  "vague filler like 'it depends' or 'some studies suggest'. When something genuinely can't be " +
+  "determined from available sources, say exactly that ('not determinable from available " +
+  "sources') rather than a soft, noncommittal guess dressed up as an answer.";
 
 function baseInstructionPreamble(lang, claimKind) {
   var languageName = LANGUAGE_NAMES[lang] || LANGUAGE_NAMES.en;
@@ -57,9 +97,18 @@ function buildEmpiricalInstruction(lang) {
     baseInstructionPreamble(lang, "Empirical") +
     "Use Google Search to check the claim, then fill: assessment, confidence + " +
     "confidenceReason (one sentence on why), whatWouldChangeAssessment (one sentence), " +
-    "evidenceSummary (2-3 sentences on what the evidence shows), denominatorCheck (what is " +
-    "this compared to — absolute vs. per-capita, which timeframe, is the comparison fair), " +
-    "precisionCheck (one sentence: is the claim specific enough to be falsifiable, or vague). " +
+    "evidenceSummary (2-3 sentences on what the evidence shows), denominatorCheck (a CONCRETE " +
+    "comparison figure or baseline if one exists — what is this compared to, absolute vs. " +
+    "per-capita, which timeframe, is the comparison fair — or plainly 'not determinable from " +
+    "available sources' if none exists; never just restate the claim's own framing as if it " +
+    "were the comparison), precisionCheck (one sentence: is the claim specific enough to be " +
+    "falsifiable, or vague), mostRelevantSourceCheck (name the SPECIFIC source type or body " +
+    "that would most authoritatively settle this claim, e.g. 'the CBS Labour Force Survey' or " +
+    "'Knesset voting record', and say plainly whether your search actually surfaced it or not " +
+    "— closing the gap between a source sounding authoritative and it actually being checked), " +
+    "missingContext (the single most important piece of context or data whose absence most " +
+    "changes how this claim should be interpreted — one sentence). " +
+    FRAMING_SIGNALS_INSTRUCTION + " " +
     EVIDENCE_RULES
   );
 }
@@ -69,11 +118,18 @@ function buildCausalInstruction(lang) {
     baseInstructionPreamble(lang, "Causal") +
     "Use Google Search to check the claim, then fill: assessment, confidence + " +
     "confidenceReason, whatWouldChangeAssessment, evidenceSummary (2-3 sentences), " +
-    "alternativeExplanations (2-3 alternative explanations consistent with the same facts), " +
-    "correlationCautionNeeded (true if this looks like correlation being mistaken for " +
-    "causation) with correlationCautionNote explaining briefly (or a short 'not a concern " +
-    "here' if correlationCautionNeeded is false), distinguishingEvidence (what evidence would " +
-    "let someone tell the competing explanations apart). " +
+    "alternativeExplanations (2-3 GENUINELY DIFFERENT rival causal explanations consistent " +
+    "with the same facts — not reworded restatements of the claim itself; if you truly cannot " +
+    "find distinct alternatives, say so explicitly as one of the entries rather than padding " +
+    "with near-duplicates), correlationCautionNeeded (true if this looks like correlation " +
+    "being mistaken for causation) with correlationCautionNote explaining briefly (or a short " +
+    "'not a concern here' if correlationCautionNeeded is false), distinguishingEvidence (what " +
+    "evidence would let someone tell the competing explanations apart), " +
+    "mostRelevantSourceCheck (name the SPECIFIC source type or body that would most " +
+    "authoritatively settle this claim, and say plainly whether your search actually surfaced " +
+    "it or not), missingContext (the single most important piece of context or data whose " +
+    "absence most changes how this claim should be interpreted — one sentence). " +
+    FRAMING_SIGNALS_INSTRUCTION + " " +
     EVIDENCE_RULES
   );
 }
@@ -90,7 +146,8 @@ function buildPredictionInstruction(lang) {
     "referenceClassAndBaseRate (what similar past cases/predictions suggest, and roughly how " +
     "often things like this pan out), feasibility (does the person/institution making this " +
     "have the authority and a plausible mechanism to make it happen). Write in " + languageName +
-    ". Never fabricate a specific statistic. Never assign a numeric score."
+    ". Never fabricate a specific statistic. Never assign a numeric score. " +
+    FRAMING_SIGNALS_INSTRUCTION
   );
 }
 
@@ -104,7 +161,8 @@ function buildNormativeInstruction(lang) {
     "values or priorities this claim serves, and which it presses against), steelman (2-3 " +
     "sentences: the strongest, fairest version of the position behind this claim), " +
     "strawmanWarning (1-2 sentences: the distorted/exaggerated version people are likely to " +
-    "argue against instead of the real claim). Never assign a numeric score."
+    "argue against instead of the real claim). Never assign a numeric score. " +
+    FRAMING_SIGNALS_INSTRUCTION
   );
 }
 
@@ -113,7 +171,8 @@ function buildMixedInstruction(lang) {
     baseInstructionPreamble(lang, "Mixed") +
     "This claim genuinely fuses more than one kind of assertion and couldn't be cleanly " +
     "split. Fill just: assessment, confidence + confidenceReason, whatWouldChangeAssessment. " +
-    "Never assign a numeric score."
+    "Never assign a numeric score. " +
+    FRAMING_SIGNALS_INSTRUCTION
   );
 }
 
@@ -126,11 +185,15 @@ const EMPIRICAL_SCHEMA = {
     whatWouldChangeAssessment: { type: "STRING" },
     evidenceSummary: { type: "STRING" },
     denominatorCheck: { type: "STRING" },
-    precisionCheck: { type: "STRING" }
+    precisionCheck: { type: "STRING" },
+    mostRelevantSourceCheck: { type: "STRING" },
+    missingContext: { type: "STRING" },
+    framingSignals: FRAMING_SIGNALS_FIELD
   },
   required: [
     "assessment", "confidence", "confidenceReason", "whatWouldChangeAssessment",
-    "evidenceSummary", "denominatorCheck", "precisionCheck"
+    "evidenceSummary", "denominatorCheck", "precisionCheck",
+    "mostRelevantSourceCheck", "missingContext", "framingSignals"
   ]
 };
 
@@ -145,11 +208,15 @@ const CAUSAL_SCHEMA = {
     alternativeExplanations: { type: "ARRAY", items: { type: "STRING" }, minItems: 2, maxItems: 3 },
     correlationCautionNeeded: { type: "BOOLEAN" },
     correlationCautionNote: { type: "STRING" },
-    distinguishingEvidence: { type: "STRING" }
+    distinguishingEvidence: { type: "STRING" },
+    mostRelevantSourceCheck: { type: "STRING" },
+    missingContext: { type: "STRING" },
+    framingSignals: FRAMING_SIGNALS_FIELD
   },
   required: [
     "assessment", "confidence", "confidenceReason", "whatWouldChangeAssessment", "evidenceSummary",
-    "alternativeExplanations", "correlationCautionNeeded", "correlationCautionNote", "distinguishingEvidence"
+    "alternativeExplanations", "correlationCautionNeeded", "correlationCautionNote", "distinguishingEvidence",
+    "mostRelevantSourceCheck", "missingContext", "framingSignals"
   ]
 };
 
@@ -160,9 +227,13 @@ const PREDICTION_SCHEMA = {
     confidenceReason: { type: "STRING" },
     whatWouldChangeAssessment: { type: "STRING" },
     referenceClassAndBaseRate: { type: "STRING" },
-    feasibility: { type: "STRING" }
+    feasibility: { type: "STRING" },
+    framingSignals: FRAMING_SIGNALS_FIELD
   },
-  required: ["confidence", "confidenceReason", "whatWouldChangeAssessment", "referenceClassAndBaseRate", "feasibility"]
+  required: [
+    "confidence", "confidenceReason", "whatWouldChangeAssessment", "referenceClassAndBaseRate",
+    "feasibility", "framingSignals"
+  ]
 };
 
 const NORMATIVE_SCHEMA = {
@@ -174,10 +245,12 @@ const NORMATIVE_SCHEMA = {
     whatWouldChangeAssessment: { type: "STRING" },
     tension: { type: "STRING" },
     steelman: { type: "STRING" },
-    strawmanWarning: { type: "STRING" }
+    strawmanWarning: { type: "STRING" },
+    framingSignals: FRAMING_SIGNALS_FIELD
   },
   required: [
-    "assessment", "confidence", "confidenceReason", "whatWouldChangeAssessment", "tension", "steelman", "strawmanWarning"
+    "assessment", "confidence", "confidenceReason", "whatWouldChangeAssessment", "tension", "steelman",
+    "strawmanWarning", "framingSignals"
   ]
 };
 
@@ -187,9 +260,10 @@ const MIXED_SCHEMA = {
     assessment: { type: "STRING", enum: ASSESSMENT_ENUM },
     confidence: { type: "STRING", enum: CONFIDENCE_ENUM },
     confidenceReason: { type: "STRING" },
-    whatWouldChangeAssessment: { type: "STRING" }
+    whatWouldChangeAssessment: { type: "STRING" },
+    framingSignals: FRAMING_SIGNALS_FIELD
   },
-  required: ["assessment", "confidence", "confidenceReason", "whatWouldChangeAssessment"]
+  required: ["assessment", "confidence", "confidenceReason", "whatWouldChangeAssessment", "framingSignals"]
 };
 
 const GROUNDED_TYPES = { Empirical: true, Causal: true };

@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700&family=Frank+Ruhl+Libre:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -55,6 +61,15 @@
     <p id="error-area" class="error-message" dir="auto" hidden></p>
 
     <section id="dashboard-area" class="dashboard-area" hidden>
+      <section id="bottom-line" class="bottom-line" hidden>
+        <div class="bottom-line-action" id="bottom-line-action">
+          <span class="action-icon" id="action-icon"></span>
+          <span class="action-label" id="action-label"></span>
+        </div>
+        <p class="bottom-line-sentence" id="bottom-line-sentence" dir="auto"></p>
+        <p class="bottom-line-rationale" id="bottom-line-rationale"></p>
+      </section>
+
       <section class="verdict-strip" id="verdict-strip">
         <div class="verdict-headline">
           <span class="verdict-label" id="verdict-label"></span>

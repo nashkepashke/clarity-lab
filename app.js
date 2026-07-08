@@ -16,6 +16,22 @@ var MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 var MAX_IMAGE_DIMENSION = 1600;
 var RECOMPRESS_THRESHOLD_BYTES = 800 * 1024;
 
+// Explicit, auditable verdictType -> traffic-light action mapping. This is
+// the ONLY place that decides the action — the model picks verdictType,
+// never the action itself, per the "single explicit table in code" design.
+var VERDICT_ACTION_MAP = {
+  well_supported: { color: "green", labelKey: "safe_to_share" },
+  contradicted: { color: "red", labelKey: "dont_spread" },
+  partly_true_missing_context: { color: "amber", labelKey: "share_with_caution" },
+  unfalsifiable_polarizing: { color: "amber", labelKey: "share_with_caution" },
+  likely_unfounded: { color: "red", labelKey: "dont_spread" },
+  value_judgment: { color: "amber", labelKey: "opinion_judge_yourself" },
+  prediction: { color: "amber", labelKey: "opinion_judge_yourself" },
+  insufficient_info: { color: "amber", labelKey: "share_with_caution" },
+  mixed_claims: { color: "amber", labelKey: "share_with_caution" }
+};
+var ACTION_ICON = { green: "✓", amber: "⚠", red: "✕" };
+
 var langToggle = document.getElementById("lang-toggle");
 var langButtons = langToggle.querySelectorAll(".lang-btn");
 var titleEl = document.getElementById("page-title");
@@ -28,6 +44,11 @@ var dashboardGrid = document.querySelector(".dashboard-grid");
 var errorArea = document.getElementById("error-area");
 var chipsContainer = document.getElementById("chips");
 var disclaimerEl = document.getElementById("disclaimer");
+var bottomLineEl = document.getElementById("bottom-line");
+var actionIconEl = document.getElementById("action-icon");
+var actionLabelEl = document.getElementById("action-label");
+var bottomLineSentenceEl = document.getElementById("bottom-line-sentence");
+var bottomLineRationaleEl = document.getElementById("bottom-line-rationale");
 var verdictLabelEl = document.getElementById("verdict-label");
 var verdictBadgeEl = document.getElementById("verdict-badge");
 var dialsContainer = document.getElementById("dials");
@@ -187,6 +208,7 @@ function runAnalysis() {
 
   analyzeClaim(text, currentLang, function (phase) {
     if (phase === "triage-done") analyzeBtn.textContent = T.input.phaseEvidence;
+    if (phase === "evidence-done") analyzeBtn.textContent = T.input.phaseVerdict;
   })
     .then(function (data) {
       renderDashboard(data, currentLang);
@@ -248,6 +270,7 @@ function renderDashboard(data, lang) {
   var previousT = T;
   T = renderT;
   try {
+    renderBottomLine(data.verdict);
     renderVerdictStrip(data);
     renderClaimsColumn(data.claims);
     renderEvidenceRail(data.claims);
@@ -265,6 +288,29 @@ function renderDashboard(data, lang) {
   // the difference between the verdict strip fitting above the fold or not.
   claimInput.rows = 2;
   imageHintEl.hidden = true;
+}
+
+// Gated on verdict presence — null/absent (a failed synthesis call, or a
+// history entry saved before this feature existed) just hides the block,
+// same field-presence-gating principle used everywhere else in this app.
+function renderBottomLine(verdict) {
+  var action = verdict && VERDICT_ACTION_MAP[verdict.verdictType];
+  if (!verdict || !action) {
+    bottomLineEl.hidden = true;
+    return;
+  }
+
+  bottomLineEl.className = "bottom-line bottom-line-" + action.color;
+  actionIconEl.textContent = ACTION_ICON[action.color];
+  actionLabelEl.textContent = T.verdict.action[action.labelKey];
+
+  var sentence = T.verdict.sentence[verdict.verdictType] || "";
+  if (verdict.customClause) sentence += " " + verdict.customClause;
+  bottomLineSentenceEl.textContent = sentence;
+
+  bottomLineRationaleEl.textContent = T.verdict.rationale[verdict.verdictType] || "";
+
+  bottomLineEl.hidden = false;
 }
 
 function renderVerdictStrip(data) {
@@ -386,11 +432,16 @@ function renderClaimCard(claim, allClaims) {
     card.appendChild(notChecked);
   }
 
+  if (Array.isArray(claim.framingSignals) && claim.framingSignals.length > 0) {
+    card.appendChild(renderFramingSignals(claim.framingSignals));
+  }
+
   // Gated purely by field presence, not claim.type — this is what makes
   // partial/old-format stored (history) data render safely: whatever
   // fields exist show up, whatever's missing is silently skipped.
   var textSectionFields = [
     "whatWouldChangeAssessment", "evidenceSummary", "denominatorCheck", "precisionCheck",
+    "mostRelevantSourceCheck", "missingContext",
     "distinguishingEvidence", "referenceClassAndBaseRate", "feasibility", "tension", "steelman", "strawmanWarning"
   ];
   textSectionFields.forEach(function (field) {
@@ -438,6 +489,34 @@ function renderClaimCard(claim, allClaims) {
   }
 
   return card;
+}
+
+// Neutral "heads up" flags — not collapsed inside a <details>, same
+// always-visible treatment as the not-source-checked note above, since
+// these are meant to be noticed, not tucked away.
+function renderFramingSignals(signals) {
+  var wrap = document.createElement("div");
+  wrap.className = "framing-signals";
+  signals.forEach(function (s) {
+    var item = document.createElement("div");
+    item.className = "framing-signal";
+
+    var label = document.createElement("span");
+    label.className = "framing-signal-label";
+    label.textContent = badgeLabel(T.badges.framingSignal, s.signal);
+    item.appendChild(label);
+
+    if (s.note) {
+      var note = document.createElement("span");
+      note.className = "framing-signal-note";
+      note.dir = "auto";
+      note.textContent = s.note;
+      item.appendChild(note);
+    }
+
+    wrap.appendChild(item);
+  });
+  return wrap;
 }
 
 function buildTextList(items) {
