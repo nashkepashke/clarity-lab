@@ -11,6 +11,11 @@ var HISTORY_STORAGE_KEY = "claimBreakdownHistory";
 var MAX_HISTORY = 20;
 var TIER_PRIORITY = ["Primary official", "Academic", "Established journalism", "Fact-check org", "Other"];
 
+var ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+var MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+var MAX_IMAGE_DIMENSION = 1600;
+var RECOMPRESS_THRESHOLD_BYTES = 800 * 1024;
+
 var langToggle = document.getElementById("lang-toggle");
 var langButtons = langToggle.querySelectorAll(".lang-btn");
 var titleEl = document.getElementById("page-title");
@@ -33,9 +38,24 @@ var historyToggleEl = document.getElementById("history-toggle");
 var historyPrivacyNoteEl = document.getElementById("history-privacy-note");
 var historyListEl = document.getElementById("history-list");
 var historyClearBtn = document.getElementById("history-clear-btn");
+var inputCard = document.getElementById("input-card");
+var imageAttachBtn = document.getElementById("image-attach-btn");
+var imageFileInput = document.getElementById("image-file-input");
+var imageHintEl = document.getElementById("image-hint");
+var imagePreview = document.getElementById("image-preview");
+var imagePreviewImg = document.getElementById("image-preview-img");
+var imageRemoveBtn = document.getElementById("image-remove-btn");
+var extractPromptEl = document.getElementById("extract-prompt");
 
 var currentLang = null;
 var T = null;
+
+// The attached image lives only in memory for the extraction call — it's
+// never sent to /api/triage or /api/evidence, and never saved to history
+// (pushHistoryEntry only ever sees claimInput.value, which by the time
+// analysis runs is the extracted-and-possibly-edited text, not the image).
+var attachedImage = null; // { base64, mimeType, previewUrl } | null
+var imageExtracted = false;
 
 langButtons.forEach(function (btn) {
   btn.textContent = LANGUAGE_LABELS[btn.dataset.lang];
@@ -53,8 +73,13 @@ function applyLanguage(lang) {
   subtitleEl.textContent = T.header.subtitle;
   inputLabelEl.textContent = T.input.label;
   claimInput.placeholder = T.input.placeholder;
-  analyzeBtn.textContent = analyzeBtn.disabled ? T.input.phaseTriage : T.input.analyzeIdle;
   disclaimerEl.textContent = T.disclaimer;
+  imageAttachBtn.textContent = T.image.attachButton;
+  imageHintEl.textContent = T.image.hint;
+  imagePreviewImg.alt = T.image.previewAlt;
+  imageRemoveBtn.title = T.image.removeButton;
+  imageRemoveBtn.setAttribute("aria-label", T.image.removeButton);
+  if (!analyzeBtn.disabled) updateAnalyzeButtonLabel();
   verdictLabelEl.textContent = T.verdict.overallLabel;
   historyToggleEl.textContent = T.history.toggle;
   historyPrivacyNoteEl.textContent = T.history.privacyNote;
@@ -74,6 +99,7 @@ function applyLanguage(lang) {
   claimsColumn.innerHTML = "";
   evidenceRail.innerHTML = "";
   errorArea.hidden = true;
+  if (imageExtracted) extractPromptEl.hidden = true;
 
   localStorage.setItem(LANG_STORAGE_KEY, lang);
 }
@@ -109,15 +135,52 @@ chipsContainer.addEventListener("click", function (event) {
   if (!chip) return;
   claimInput.value = chip.dataset.claim;
   claimInput.focus();
+  // Picking an example is a clear "analyze this text" signal — an image
+  // still waiting to be read would otherwise silently win on the next
+  // click and overwrite what they just chose.
+  if (attachedImage && !imageExtracted) clearAttachedImage();
 });
 
 analyzeBtn.addEventListener("click", function () {
+  if (attachedImage && !imageExtracted) {
+    runExtraction();
+  } else {
+    runAnalysis();
+  }
+});
+
+function runExtraction() {
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = T.input.extractPhase;
+  errorArea.hidden = true;
+  extractPromptEl.hidden = true;
+
+  extractClaimFromImage(attachedImage.base64, attachedImage.mimeType, currentLang)
+    .then(function (extractedText) {
+      claimInput.value = extractedText;
+      claimInput.rows = 4;
+      imageExtracted = true;
+      extractPromptEl.textContent = T.image.extractPrompt;
+      extractPromptEl.hidden = false;
+      claimInput.focus();
+    })
+    .catch(function (err) {
+      showError(translateExtractionError(err));
+    })
+    .then(function () {
+      analyzeBtn.disabled = false;
+      updateAnalyzeButtonLabel();
+    });
+}
+
+function runAnalysis() {
   var text = claimInput.value;
 
   analyzeBtn.disabled = true;
   analyzeBtn.textContent = T.input.phaseTriage;
   dashboardArea.hidden = true;
   errorArea.hidden = true;
+  extractPromptEl.hidden = true;
   // Reclaim vertical space for the incoming result — matters most on
   // desktop, where the goal is to see the verdict/dials without scrolling.
   historyPanel.removeAttribute("open");
@@ -127,6 +190,9 @@ analyzeBtn.addEventListener("click", function () {
   })
     .then(function (data) {
       renderDashboard(data, currentLang);
+      // History only ever sees claimInput.value here — for an
+      // image-sourced claim that's the extracted (and possibly
+      // user-edited) text, never the image itself.
       pushHistoryEntry(text, currentLang, data);
       renderHistoryList();
     })
@@ -135,13 +201,27 @@ analyzeBtn.addEventListener("click", function () {
     })
     .then(function () {
       analyzeBtn.disabled = false;
-      analyzeBtn.textContent = T.input.analyzeIdle;
+      updateAnalyzeButtonLabel();
     });
-});
+}
+
+function updateAnalyzeButtonLabel() {
+  analyzeBtn.textContent = attachedImage && !imageExtracted ? T.input.analyzeWithImageIdle : T.input.analyzeIdle;
+}
 
 function translateError(err) {
   var code = err && err.code;
   return (code && T.errors[code]) || T.errors.generic;
+}
+
+// Same code->message lookup as translateError, but falls back to a
+// message specific to "something went wrong reading the image" instead
+// of the analysis-flavored generic message — the specific codes
+// (rate_limited, model_overloaded, no_claim_found, etc.) still win
+// either way, this only changes the catch-all.
+function translateExtractionError(err) {
+  var code = err && err.code;
+  return (code && T.errors[code]) || T.errors.extraction_failed;
 }
 
 function showError(message) {
@@ -179,8 +259,12 @@ function renderDashboard(data, lang) {
   // Once there's a result to look at, the input doesn't need to stay
   // full-height — freeing that space is most of what makes the verdict
   // strip and dials visible without scrolling on desktop. resize:vertical
-  // still lets you drag it back open if you want more room to edit.
+  // still lets you drag it back open if you want more room to edit. The
+  // image hint line goes the same way — the upload button alone is still
+  // enough affordance, and that one line of text was, in testing, exactly
+  // the difference between the verdict strip fitting above the fold or not.
   claimInput.rows = 2;
+  imageHintEl.hidden = true;
 }
 
 function renderVerdictStrip(data) {
@@ -564,6 +648,153 @@ function tierBadgeClass(tier) {
   if (tier === "Fact-check org") return "badge-tier-factcheck";
   return "badge-tier-other";
 }
+
+// ---------- Image input ----------
+//
+// Three ways in: the upload button (also covers mobile camera roll —
+// a plain file input with an image accept list already shows the native
+// photo library/camera picker on mobile, no special handling needed),
+// drag-and-drop onto the input card, and Ctrl+V paste into the textarea.
+// All three funnel into handleImageFile(), which validates, downscales
+// if needed, and stores the result — nothing is sent to the server until
+// the button is clicked (see runExtraction() above).
+
+function clearAttachedImage() {
+  attachedImage = null;
+  imageExtracted = false;
+  imagePreview.hidden = true;
+  imagePreviewImg.src = "";
+  imageFileInput.value = "";
+  updateAnalyzeButtonLabel();
+}
+
+function handleImageFile(file) {
+  if (!file) return;
+
+  if (ACCEPTED_IMAGE_TYPES.indexOf(file.type) === -1) {
+    showError(T.errors.unsupported_file_type);
+    return;
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    showError(T.errors.file_too_large);
+    return;
+  }
+
+  errorArea.hidden = true;
+
+  readAndMaybeDownscale(file)
+    .then(function (result) {
+      attachedImage = result;
+      imageExtracted = false;
+      extractPromptEl.hidden = true;
+      imagePreviewImg.src = result.previewUrl;
+      imagePreview.hidden = false;
+      updateAnalyzeButtonLabel();
+    })
+    .catch(function () {
+      showError(T.errors.unreadable_image);
+    });
+}
+
+// Resolves { base64, mimeType, previewUrl }. Images already small enough
+// (both under the byte threshold and within MAX_IMAGE_DIMENSION) pass
+// through untouched; anything bigger is redrawn on a canvas, capped at
+// MAX_IMAGE_DIMENSION on its longest side, and re-encoded as JPEG — that
+// bounds the request payload regardless of how the original was encoded
+// (a small-dimension but poorly-compressed PNG still gets recompressed).
+function readAndMaybeDownscale(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = function () {
+      reject(new Error("read failed"));
+    };
+    reader.onload = function () {
+      var dataUrl = reader.result;
+
+      if (file.size <= RECOMPRESS_THRESHOLD_BYTES) {
+        var probe = new Image();
+        probe.onerror = function () {
+          reject(new Error("decode failed"));
+        };
+        probe.onload = function () {
+          if (Math.max(probe.naturalWidth, probe.naturalHeight) <= MAX_IMAGE_DIMENSION) {
+            resolve({ base64: dataUrl.split(",")[1], mimeType: file.type, previewUrl: dataUrl });
+          } else {
+            downscale(probe, resolve);
+          }
+        };
+        probe.src = dataUrl;
+        return;
+      }
+
+      var img = new Image();
+      img.onerror = function () {
+        reject(new Error("decode failed"));
+      };
+      img.onload = function () {
+        downscale(img, resolve);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function downscale(img, resolve) {
+  var scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(img.naturalWidth, img.naturalHeight));
+  var canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  var ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  var outUrl = canvas.toDataURL("image/jpeg", 0.85);
+  resolve({ base64: outUrl.split(",")[1], mimeType: "image/jpeg", previewUrl: outUrl });
+}
+
+imageAttachBtn.addEventListener("click", function () {
+  imageFileInput.click();
+});
+
+imageFileInput.addEventListener("change", function () {
+  handleImageFile(imageFileInput.files && imageFileInput.files[0]);
+});
+
+imageRemoveBtn.addEventListener("click", function () {
+  clearAttachedImage();
+});
+
+claimInput.addEventListener("paste", function (event) {
+  var items = event.clipboardData && event.clipboardData.items;
+  if (!items) return;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type && items[i].type.indexOf("image/") === 0) {
+      event.preventDefault();
+      handleImageFile(items[i].getAsFile());
+      return;
+    }
+  }
+});
+
+["dragenter", "dragover"].forEach(function (eventName) {
+  inputCard.addEventListener(eventName, function (event) {
+    if (!event.dataTransfer || event.dataTransfer.types.indexOf("Files") === -1) return;
+    event.preventDefault();
+    inputCard.classList.add("drag-over");
+  });
+});
+
+["dragleave", "dragend"].forEach(function (eventName) {
+  inputCard.addEventListener(eventName, function () {
+    inputCard.classList.remove("drag-over");
+  });
+});
+
+inputCard.addEventListener("drop", function (event) {
+  if (!event.dataTransfer || !event.dataTransfer.files || event.dataTransfer.files.length === 0) return;
+  event.preventDefault();
+  inputCard.classList.remove("drag-over");
+  handleImageFile(event.dataTransfer.files[0]);
+});
 
 // ---------- History ----------
 

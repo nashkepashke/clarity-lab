@@ -18,11 +18,17 @@ active.
 
 ## How it works
 
-1. You paste text into the textarea (or click an example chip) and press
-   "Break it down" / "פרקו את הטענה". The button label walks through two
-   honest phases — "breaking down the claim" then "checking sources" —
-   because this is genuinely two network calls, not one long spinner.
-2. **`POST /api/triage`** (Call 1, no grounding): decomposes the input
+1. You paste text into the textarea (or click an example chip) — or paste
+   a screenshot with Ctrl+V, drag-and-drop one, or use the upload button
+   (which also opens the camera roll on mobile). An attached image first
+   goes through a separate **`POST /api/extract`** call that transcribes
+   whatever claim/statement is in it into the same textarea, editable,
+   with a "is this the claim?" prompt — you review/edit it and press the
+   button again to actually analyze it. See **Image input** below.
+2. Press "Break it down" / "פרקו את הטענה". The button label walks through
+   two honest phases — "breaking down the claim" then "checking sources"
+   — because this is genuinely two network calls, not one long spinner.
+3. **`POST /api/triage`** (Call 1, no grounding): decomposes the input
    into 1-5 atomic claims and types each one as `Empirical`, `Causal`,
    `Prediction-or-promise`, `Normative`, or `Mixed`. For any `Normative`
    claim, it also extracts embedded factual premises as *additional*
@@ -30,7 +36,7 @@ active.
    `Normative` entry pointing at them via `premiseIds`. E.g. "this unfair
    law raised unemployment" becomes a `Normative` claim ("...is unfair")
    plus a linked `Empirical` claim ("...raised unemployment").
-3. **`POST /api/evidence`** (Call 2, one Gemini call per claim): produces
+4. **`POST /api/evidence`** (Call 2, one Gemini call per claim): produces
    the full analysis for every claim from step 2. `Empirical`/`Causal`
    claims get Gemini's Google Search grounding tool enabled *in the same
    call* as the `responseSchema` (this combination only works on Gemini
@@ -38,9 +44,86 @@ active.
    `Normative`/`Mixed` claims are analyzed just as deeply but without
    grounding, since there's nothing to search-check in a value judgment
    or an unresolved future.
-4. The frontend combines both responses into one dashboard: a verdict
+5. The frontend combines both responses into one dashboard: a verdict
    strip, a card per claim, and an evidence rail. See **Dashboard**
    below.
+
+## Image input
+
+Three ways to attach an image: Ctrl+V paste into the textarea, drag-and-drop
+onto the input card, or the upload button's file picker (a plain
+`accept="image/png,image/jpeg,image/webp"` input with no `capture`
+attribute — that's what lets mobile browsers show the full picker,
+camera roll included, rather than forcing the camera).
+
+- **Client-side validation and downscaling happen before anything is
+  sent.** Only PNG/JPEG/WEBP are accepted; anything over ~4MB is rejected
+  outright with a translated message. Images are re-encoded through a
+  canvas (capped at 1600px on the longest side, JPEG quality 0.85)
+  whenever they're either over that dimension *or* over ~800KB — the
+  dual condition matters because a small-dimension but poorly-compressed
+  file could still produce a large base64 payload otherwise. This isn't
+  just about staying under the 4MB original-file cap: base64-encoding
+  adds ~33% overhead, so a barely-under-4MB original could otherwise
+  become a JSON body large enough to risk Vercel's request size limit.
+- **Two visible steps, using the same button.** Attaching an image
+  changes the analyze button's idle label to "Read the image" — clicking
+  it calls `POST /api/extract` (not triage/evidence) and, on success,
+  populates the *existing* textarea with the transcribed text plus a
+  small "Is this the claim? Edit if needed" prompt, then reverts the
+  button to its normal "Break it down" label. The next click runs the
+  real, completely unchanged triage → evidence pipeline on whatever's now
+  in the box. No new UI surface was needed for the "editable box" or the
+  "user confirms before analysis runs" requirements — both fall out of
+  reusing the textarea and the existing button as a small state machine.
+- **`api/extract.js`** sends the image to Gemini as an inline part
+  (`callGeminiJSON`'s new optional `imageParts`) alongside a
+  `responseSchema` of `{ found: boolean, extractedText: string }` and an
+  instruction to transcribe verbatim, in whatever language the image's
+  text is actually in — not translate it, even though the instruction
+  itself is phrased in the UI language. If `found` is false (or
+  `extractedText` comes back empty), the endpoint returns 422 with error
+  code `no_claim_found` rather than ever forwarding a fabricated string.
+  Verified live with three real cases: a generated Hebrew WhatsApp-style
+  screenshot (correctly transcribed the claim verbatim in Hebrew,
+  stripped the sender name and timestamp), a generated English
+  tweet-style screenshot (correctly transcribed the body, stripped the
+  handle/avatar), and a plain gradient image with no text (correctly
+  returned `no_claim_found`, invented nothing).
+- **History only ever stores the extracted text, never the image** —
+  and this required no special-case code. `pushHistoryEntry` already
+  only reads `claimInput.value` at the moment analysis runs, which by
+  then is always the transcribed (and possibly hand-edited) text; the
+  attached image's base64 data lives in an in-memory variable that's
+  never passed anywhere near `localStorage`. Verified live: a full
+  image→extract→analyze run produced a history entry with no `base64`
+  substring anywhere in the stored JSON.
+- **New translated failure states**: `file_too_large`,
+  `unsupported_file_type`, `unreadable_image` (client-side only — the
+  browser couldn't decode the file), `no_claim_found`, and
+  `extraction_failed` (a context-appropriate fallback used only when no
+  more specific code matches — the existing `rate_limited`/
+  `model_overloaded`/etc. codes are reused as-is for extraction failures
+  they actually describe, same translated messages as the main pipeline).
+  A `no_claim_found` result deliberately leaves the image attached (not
+  cleared) so the user can retry or try a different picture without
+  re-uploading from scratch.
+- **Two real bugs found by actually rendering the UI, not just
+  asserting on DOM attributes:** first, `.image-preview`'s CSS had the
+  same cascade pitfall already hit twice before for `#dashboard-area`
+  and `.evidence-rail` — a `display: flex` rule with no `:not([hidden])`
+  guard has equal specificity to (and comes after) the `[hidden]`
+  attribute's own UA-stylesheet rule, so setting `.hidden = true` in JS
+  didn't actually hide it. A screenshot caught this even though the test
+  suite's `getAttribute(el, "hidden")` checks all passed — attribute
+  presence isn't the same as visual state, and the tests were fixed to
+  use `page.isVisible()` instead. Second, the new upload button/hint row
+  added just enough height to push the verdict strip a few px past the
+  desktop no-scroll goal at 900px viewport height — fixed by hiding the
+  hint line (button stays) once a result exists, the same "reclaim space"
+  treatment already applied to the textarea, plus small proportionate
+  trims to `.page-header`/`.verdict-strip` padding rather than one
+  drastic cut.
 
 ## Files
 
@@ -53,8 +136,9 @@ active.
 | `analyzeClaim.js` | The only file that talks to the backend. Calls `/api/triage` then `/api/evidence`, reports progress via an `onProgress` callback, and combines both responses into `{ claims, epistemicProfile, overallAssessment }` — `app.js` never sees that this is two calls. Also computes the epistemic profile (see below). Rejects with an `Error` carrying a `.code`, never English text. |
 | `api/triage.js` | Call 1 — decomposition + typing + premise extraction. |
 | `api/evidence.js` | Call 2 — per-claim grounded/ungrounded analysis, with a same-claim fallback (grounded → ungrounded) if the grounding-tool call itself fails, and a "zero sources found → force `Not enough information`" safety net. |
-| `api/_lib/gemini.js` | Shared by both routes (underscore-prefixed so Vercel doesn't treat it as a route itself): the retry-on-503 Gemini caller, source-tiering domain heuristic, and shared enums/constants. |
-| `vercel.json` | Per-function `maxDuration` — 20s for triage, 45s for evidence (grounded calls plus the ungrounded-fallback retry need real headroom). |
+| `api/extract.js` | Image-to-claim transcription — a separate, ungrounded call, not part of the triage/evidence pipeline. See **Image input**. |
+| `api/_lib/gemini.js` | Shared by all three routes (underscore-prefixed so Vercel doesn't treat it as a route itself): the retry-on-503 Gemini caller, source-tiering domain heuristic, shared enums/constants, and `callGeminiJSON`'s optional `imageParts` (inline image data) support. |
+| `vercel.json` | Per-function `maxDuration` — 20s for triage, 45s for evidence (grounded calls plus the ungrounded-fallback retry need real headroom), 20s for extract. |
 | `.env.example` | Template for the one required environment variable, `GEMINI_API_KEY`. Copy to `.env` for local testing — never commit the real key. |
 | `package.json` | Just pins `node >= 18` (both functions rely on the built-in global `fetch`). |
 

@@ -46,6 +46,22 @@ function postJSON(url, body) {
     });
 }
 
+// Image-to-claim extraction — a separate call from the triage/evidence
+// pipeline below, and deliberately not wired into it. app.js calls this
+// first (if an image is attached), gets back plain extracted text, lets
+// the user review/edit it in the existing textarea, and only then calls
+// analyzeClaim() with that (possibly edited) text — completely unchanged
+// from how manually-typed text already worked. Same .code error contract
+// as postJSON below; a distinct `no_claim_found` code is used server-side
+// when the model looked and found nothing, so it flows through the same
+// translation mechanism as any other error rather than needing special
+// handling here.
+function extractClaimFromImage(base64Image, mimeType, lang) {
+  return postJSON("/api/extract", { image: base64Image, mimeType: mimeType, lang: lang }).then(function (body) {
+    return body.extractedText;
+  });
+}
+
 function analyzeClaim(text, lang, onProgress) {
   return postJSON("/api/triage", { text: text, lang: lang }).then(function (triageBody) {
     if (onProgress) onProgress("triage-done");

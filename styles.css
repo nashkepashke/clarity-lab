@@ -69,7 +69,7 @@ body {
 
 .page-header {
   text-align: center;
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .lang-toggle {
@@ -119,6 +119,12 @@ body {
   border-radius: 14px;
   padding: 1.25rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.input-card.drag-over {
+  border-color: var(--accent);
+  background: #f0f4f8;
 }
 
 .chips {
@@ -144,6 +150,88 @@ body {
 .chip:hover {
   background: #eeece6;
   border-color: #d8d5cc;
+}
+
+.image-attach-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.image-attach-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  min-height: 34px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.image-attach-btn:hover {
+  background: #eeece6;
+  border-color: #d8d5cc;
+}
+
+.image-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* :not([hidden]) guard — without it this class-selector display:flex has
+   equal specificity to (and comes after, in cascade order) the UA
+   stylesheet's [hidden]{display:none}, so setting the hidden attribute
+   from JS wouldn't actually hide it once this rule applies. Same pitfall
+   already hit (and fixed) for #dashboard-area and .evidence-rail. */
+.image-preview:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem;
+  margin-bottom: 1rem;
+  background: var(--bg);
+}
+
+.image-preview-img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.image-remove-btn {
+  margin-inline-start: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.image-remove-btn:hover {
+  border-color: var(--contradicted-text);
+  color: var(--contradicted-text);
+}
+
+.extract-prompt {
+  margin: -0.2rem 0 0.6rem;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .input-label {
@@ -563,7 +651,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 1.1rem 1.25rem;
+  padding: 0.9rem 1.25rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   margin-top: 1.5rem;
 }

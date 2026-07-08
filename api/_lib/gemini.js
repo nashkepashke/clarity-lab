@@ -147,10 +147,22 @@ function mapCodeToHttp(code, detail) {
 // a normalized result. `tools` is optional (pass [{ google_search: {} }]
 // to enable grounding); when present and the call succeeds, grounding
 // chunks (if any) are extracted and returned alongside the parsed JSON.
-async function callGeminiJSON({ apiKey, systemInstruction, userText, responseSchema, maxOutputTokens, tools }) {
+// `imageParts` is optional — an array of { mimeType, data } (data is
+// base64) to attach as inline image parts, for the image-extraction call.
+async function callGeminiJSON({ apiKey, systemInstruction, userText, imageParts, responseSchema, maxOutputTokens, tools }) {
+  var parts = [];
+  if (userText) {
+    parts.push({ text: userText });
+  }
+  if (Array.isArray(imageParts)) {
+    imageParts.forEach(function (img) {
+      parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
+    });
+  }
+
   var requestBody = {
     systemInstruction: { parts: [{ text: systemInstruction }] },
-    contents: [{ parts: [{ text: userText }] }],
+    contents: [{ parts: parts }],
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: responseSchema,

@@ -5,6 +5,9 @@
     },
     "api/evidence.js": {
       "maxDuration": 45
+    },
+    "api/extract.js": {
+      "maxDuration": 20
     }
   }
 }

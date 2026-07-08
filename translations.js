@@ -33,8 +33,17 @@ var TRANSLATIONS = {
       label: "הטענה שלך",
       placeholder: "הדביקו או הקלידו טענה, הבטחה, או פסקה שלמה...",
       analyzeIdle: "פרקו את הטענה",
+      analyzeWithImageIdle: "קראו את התמונה",
       phaseTriage: "שובר לגורמים...",
-      phaseEvidence: "בודק מקורות..."
+      phaseEvidence: "בודק מקורות...",
+      extractPhase: "קורא את התמונה..."
+    },
+    image: {
+      attachButton: "הוסיפו תמונה",
+      hint: "אפשר גם להדביק, לגרור או להעלות צילום מסך של הטענה.",
+      removeButton: "הסירו את התמונה",
+      previewAlt: "תצוגה מקדימה של התמונה המצורפת",
+      extractPrompt: "האם זו הטענה? ערכו אם צריך, ואז לחצו שוב כדי לנתח."
     },
     confidence: {
       label: "רמת ביטחון:"
@@ -205,7 +214,12 @@ var TRANSLATIONS = {
       server_misconfigured: "השרת אינו מוגדר כראוי (חסר מפתח API).",
       upstream_unreachable: "לא ניתן היה להתחבר לשירות הניתוח.",
       network_error: "בעיית רשת: לא ניתן היה להתחבר לשרת.",
-      generic: "משהו השתבש בניתוח הטענה. נסו שוב."
+      generic: "משהו השתבש בניתוח הטענה. נסו שוב.",
+      file_too_large: "התמונה גדולה מדי (עד כ-4MB). נסו צילום מסך קטן יותר.",
+      unsupported_file_type: "נתמכות רק תמונות מסוג PNG, JPEG או WEBP.",
+      unreadable_image: "לא ניתן היה לקרוא את קובץ התמונה. נסו קובץ אחר.",
+      no_claim_found: "לא נמצאה טענה או אמירה ברורה בתמונה הזו.",
+      extraction_failed: "לא הצלחנו לקרוא את התמונה כרגע. נסו שוב, או הקלידו את הטענה ישירות."
     },
     disclaimer: "הדגמה בלבד — לא כלי בדיקת עובדות אמיתי."
   },
@@ -227,8 +241,17 @@ var TRANSLATIONS = {
       label: "Your claim",
       placeholder: "Paste or type a claim, a promise, or a whole paragraph...",
       analyzeIdle: "Break it down",
+      analyzeWithImageIdle: "Read the image",
       phaseTriage: "Breaking down the claim...",
-      phaseEvidence: "Checking sources..."
+      phaseEvidence: "Checking sources...",
+      extractPhase: "Reading image..."
+    },
+    image: {
+      attachButton: "Add image",
+      hint: "You can also paste, drop, or upload a screenshot of the claim.",
+      removeButton: "Remove image",
+      previewAlt: "Attached image preview",
+      extractPrompt: "Is this the claim? Edit if needed, then press the button again to analyze."
     },
     confidence: {
       label: "Confidence:"
@@ -399,7 +422,12 @@ var TRANSLATIONS = {
       server_misconfigured: "The server isn't configured correctly (missing API key).",
       upstream_unreachable: "Couldn't reach the analysis service.",
       network_error: "Network problem: couldn't reach the server.",
-      generic: "Something went wrong analyzing that claim. Try again."
+      generic: "Something went wrong analyzing that claim. Try again.",
+      file_too_large: "This image is too large (max ~4MB). Try a smaller screenshot.",
+      unsupported_file_type: "Only PNG, JPEG, or WEBP images are supported.",
+      unreadable_image: "Couldn't read that image file. Try a different one.",
+      no_claim_found: "No clear claim or statement was found in this image.",
+      extraction_failed: "Couldn't read the image right now. Try again, or type the claim directly."
     },
     disclaimer: "Demo only — not a real fact-checker."
   }
