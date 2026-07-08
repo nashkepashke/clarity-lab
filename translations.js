@@ -88,7 +88,11 @@ var TRANSLATIONS = {
       sources: function (n) {
         return n === 0 ? "מקורות" : "מקורות (" + n + ")";
       },
-      noSources: "לא נמצאו מקורות."
+      noSources: "לא נמצאו מקורות.",
+      showAllSources: function (n) {
+        return "הצג את כל המקורות (" + n + ")";
+      },
+      fullAnalysis: "ניתוח מלא"
     },
     sections: {
       whatWouldChangeAssessment: "מה עשוי לשנות את ההערכה",
@@ -335,7 +339,11 @@ var TRANSLATIONS = {
       sources: function (n) {
         return n === 0 ? "Sources" : "Sources (" + n + ")";
       },
-      noSources: "No sources found."
+      noSources: "No sources found.",
+      showAllSources: function (n) {
+        return "Show all sources (" + n + ")";
+      },
+      fullAnalysis: "Full analysis"
     },
     sections: {
       whatWouldChangeAssessment: "What could change this",

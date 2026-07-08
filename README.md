@@ -141,7 +141,7 @@ camera roll included, rather than forcing the camera).
 |---|---|
 | `index.html` | Page structure only — chips, input, language toggle, history panel, and empty slots for the bottom line / verdict strip / claim cards / evidence rail / error message. No hardcoded user-facing text; everything comes from `translations.js`. `<head>` also loads the two Google Fonts used by `styles.css` (see **Visual design**). |
 | `translations.js` | The single source of truth for every user-facing string, keyed by language: labels, section titles, badge display labels (mapped from the API's fixed English enum/type values), epistemic-profile dial names/levels/justification templates, verdict-type base sentences/rationales/action labels, framing-signal labels, source tier labels, error messages (by code), history/disclaimer text. |
-| `styles.css` | An editorial/think-tank visual system: a Frank Ruhl Libre serif for headline moments paired with Assistant (Hebrew/Latin humanist sans) everywhere else, a named type/spacing scale, a warm-paper/ink/single-accent palette with WCAG-checked desaturated traffic-light colors, badge colors per type/assessment/confidence/source-tier. See **Visual design**. Logical properties throughout (`text-align: start`, `padding-inline-start`, flex/grid) so RTL mirrors automatically. From ~900px up, the dashboard becomes a fixed-height shell (header/input/verdict stay put) with the claims column and evidence rail scrolling independently; below that it's a normal stacked, scrolling mobile page. |
+| `styles.css` | An editorial/think-tank visual system: a Frank Ruhl Libre serif for headline moments paired with Assistant (Hebrew/Latin humanist sans) everywhere else, a named type/spacing scale, a warm-paper/ink/single-accent palette with WCAG-checked desaturated traffic-light colors, badge colors per type/assessment/confidence/source-tier. See **Visual design**. The hero (bottom line) is deliberately louder than every other card (solid color band, real shadow); supporting cards are deliberately quieter (plain border, no shadow). Logical properties throughout (`text-align: start`, `padding-inline-start`, flex/grid) so RTL mirrors automatically. From ~900px up, the claim breakdown and evidence sit in a plain two-column grid with normal page scroll — see **Information hierarchy** for why this is no longer a fixed-height shell. |
 | `app.js` | Page logic: language state, the three-phase loading label, rendering the bottom line/verdict strip/dials/claim cards/evidence rail, `VERDICT_ACTION_MAP` (the auditable verdictType→traffic-light table), and the localStorage history panel. Doesn't know how the analysis is produced. |
 | `analyzeClaim.js` | The only file that talks to the backend. Calls `/api/triage`, then `/api/evidence`, then (if at least one claim succeeded) `/api/verdict`, reports progress via an `onProgress` callback, and combines all three responses into `{ claims, epistemicProfile, overallAssessment, verdict }` — `app.js` never sees that this is three calls. Also computes the epistemic profile (see below). A `/api/verdict` failure is caught and degrades to `verdict: null` rather than failing the request. Rejects with an `Error` carrying a `.code`, never English text. |
 | `api/triage.js` | Call 1 — decomposition + typing + premise extraction. |
@@ -413,23 +413,18 @@ mapping, or data model touched.
   most well above the minimum. Color was already never the only signal
   (icon glyph + translated label always accompany it); this pass didn't
   change that, only tightened the color values themselves.
-- **The bottom line**, being the hero, got the most direct attention: a
-  small colored eyebrow row (icon + micro-caps action label) sits above
-  the verdict sentence set large in the serif with tight leading, with the
-  rationale smaller and muted below — reading as a considered rating card,
-  not an alert box. This is also the block most likely to blow the
-  hard-won desktop no-scroll budget (it already has, twice, from far
-  smaller changes) — re-verified at 1280/1440px in both languages after
-  the redesign; it held without needing any padding trims this time.
+- **The bottom line** originally got a small colored eyebrow row above the
+  verdict sentence — a later pass (see **Information hierarchy** below)
+  replaced that with a full-width solid colored band, deliberately made the
+  loudest thing on the page.
 - **Dials** kept their flat horizontal-segment concept (still no
-  gauges/needles/emoji) but with a tighter, more architectural corner
-  radius and cleaner micro-caps label typography. **Claim cards** got a
-  serif italic treatment for the quoted claim text (a natural pull-quote
-  convention), a two-layer shadow for real but still subtle elevation
-  instead of the previous flat one, and more considered section-header
-  typography. **Source cards** got a cleaner bordered favicon container
-  and tier badges rendered as small refined micro-caps chips, aiming at
-  "looks credible," per the goal.
+  gauges/needles/emoji); a later pass (below) made them bigger and dropped
+  the per-dial click. **Claim cards** got a serif italic treatment for the
+  quoted claim text (a natural pull-quote convention) and more considered
+  section-header typography — a later pass reduced their shadow to keep
+  them deliberately quieter than the hero (below). **Source cards** got a
+  cleaner bordered favicon container and tier badges rendered as small
+  refined micro-caps chips, aiming at "looks credible," per the goal.
 - **Loading state**: a quiet, purely CSS sweep animation tied to the
   existing `:disabled` state on the analyze button — no JS/logic change,
   since the three phase labels already existed. **Motion** generally: a
@@ -444,68 +439,117 @@ mapping, or data model touched.
   Playwright context with `reducedMotion: "reduce"` set, not by assuming
   the universal selector worked as it reads.
 
+## Information hierarchy
+
+A follow-up pass — visual and layout only, again no analysis logic, verdict
+mapping, or data model touched — aimed at a specific problem: the previous
+pass fixed *typography* but not *hierarchy*. A screenshotted critique of the
+live UI found every card (hero, dials, each claim) using the same visual
+recipe (white background, same border, same soft shadow, same padding), and
+one Empirical claim card showing **seven** separate collapsed "+" rows with
+sources 100% hidden — a wall of equal-weight boxes with nothing readable
+without clicking.
+
+- **The hero is now deliberately louder than everything else.** `#bottom-line`
+  is a two-zone card: a solid-colored band (not a tint — reuses the existing
+  badge-text colors, already 6-8:1 contrast against white, re-verified live)
+  spanning the full width with a large icon + action label, then a paper body
+  below with the verdict sentence set genuinely large (`1.6rem` mobile,
+  `1.85rem` from 520px up) and the rationale in plain text. Supporting cards
+  (verdict strip, claim cards) had their shadow removed entirely, keeping
+  just a plain border — quieter on purpose, so the contrast with the hero
+  works in both directions, not just by making the hero bigger.
+- **Reduced click-through, field by field, not wholesale.** Dials dropped
+  their per-dial `<details>` — name, current level, *and* the one-line
+  justification all render unconditionally now (bigger type throughout: a
+  single row of four from 900px up, a legible full-width single column on
+  mobile instead of a cramped 2×2). Per claim, `missingContext` is now an
+  always-visible line (same tier as the existing always-visible
+  `confidenceReason`/`framingSignals`), and the top 1-2 sources (by the
+  existing tier-priority sort) render as inline mini-cards with no click
+  needed — only sources beyond that sit behind a "Show all sources" toggle,
+  and only when there are any. (These source mini-cards intentionally don't
+  show a date or an excerpt — Gemini's grounding chunks don't reliably carry
+  either, and the data model isn't changing to add fields that would go
+  unfilled most of the time.) Every other genuinely secondary field
+  (evidence summary, denominator/precision checks, most-relevant-source
+  note, alternative explanations, correlation caution, distinguishing
+  evidence, reference class/base rate, feasibility, tension, steelman,
+  strawman warning, what-would-change-this) now collapses into **one**
+  "Full analysis" toggle per claim instead of seven-plus separate ones —
+  each becomes a labeled sub-block inside, not its own accordion row, so
+  opening it reads as one organized passage.
+- **The desktop no-scroll guarantee was redefined, and simplified as a
+  result.** Only the hero now has to render fully on-screen without
+  scrolling — the dials and claim breakdown are explicitly allowed to
+  require scrolling. That's a real relaxation from the previous goal
+  (verdict strip *and* all four dials guaranteed visible), and it let the
+  desktop layout drop the fixed-height flex shell with two
+  independently-scrolling inner regions entirely — that mechanism had
+  broken three separate times this session from small, unrelated changes
+  (see the Dashboard section below for the historical detail). `.page` is
+  now a normal-flow block above 900px, not `height: 100vh`; `.dashboard-grid`
+  is a plain two-column CSS grid with no imposed height. Less code, less
+  fragility, and it matches what was actually asked for.
+- **Verified live** (real Gemini calls, not fixtures) with a solid factual
+  claim, a promise, and a pure value claim, both languages, desktop and
+  mobile — the hero rendered correctly and stayed within the viewport in
+  every case. One finding worth flagging honestly, out of scope to fix
+  here: testing the factual claim repeatedly surfaced a real inconsistency
+  upstream of anything this pass touched — Google Search grounding
+  intermittently returned zero sources for the same well-established claim
+  across separate calls, which correctly triggers `api/evidence.js`'s
+  existing "zero sources found → force `Not enough information`" safety
+  net (unchanged, documented behavior above); given that input,
+  `api/verdict.js` was inconsistent — once correctly picking
+  `insufficient_info`, once picking `well_supported` despite the
+  contradicting assessment. Confirmed this isn't something this pass broke
+  by calling `/api/verdict` directly with fixed, controlled input three
+  times in a row and getting the correct answer every time. The verdict
+  prompt's existing "never contradict the per-claim assessment" instruction
+  only spells out one example (`Contradicted` → not `well_supported`) and
+  doesn't generalize to `Not enough information`; worth tightening in a
+  future pass that's actually scoped to touch `api/verdict.js`, which this
+  one explicitly wasn't.
+
 ## Dashboard
 
-- **Bottom line**: the verdict sentence + traffic-light action (see
-  above), rendered first — before the verdict strip, before the claim
-  cards. A tinted background and a colored `border-inline-start` (so it
-  mirrors correctly in RTL) match the traffic-light color. Gated on
-  `verdict` being present; hidden entirely otherwise. On mobile this is
-  simply the first card in the stack.
+- **Bottom line (the hero)**: rendered first — before the verdict strip,
+  before the claim cards. A two-zone card: a full-width solid-colored band
+  (icon + action label) over a paper body (verdict sentence + rationale).
+  Gated on `verdict` being present; hidden entirely otherwise. On mobile
+  this is simply the first, dominant card in the stack. See **Information
+  hierarchy** above for the full reasoning.
 - **Verdict strip**: overall assessment (all claims agree → that value,
-  else `Mixed or context-dependent`) plus the four dials as plain labeled
-  3-segment indicators — explicitly no gauges/needles. Each dial is a
-  `<details>` (tap to reveal its justification), reusing the same
-  collapsible pattern as the claim card sections.
-- **Desktop** (~900px+): a true no-scroll shell. `.page` is
-  `height: 100vh` and a column flexbox; the header, input card, and
-  disclaimer keep their natural size, and `#dashboard-area` (bottom line
-  + verdict strip + the claim-cards/evidence-rail grid) is the one region
-  that grows to fill what's left — with the bottom line and `.verdict-strip`
-  staying natural-size inside it and `.dashboard-grid`'s row stretching to
-  fill the remainder. `.claims-column` and `.evidence-rail` both get
-  `overflow-y: auto`, so a long analysis scrolls *inside those two
-  regions*, not the page — the verdict and all four dials stay visible
-  the whole time. Verified: at 1280/1440px with a long 5-claim analysis
-  *and* the bottom line visible, the bottom line, verdict strip, and all
-  four dials render fully on-screen with zero scrolling, in both
-  languages. Adding the bottom line block cost real height and briefly
-  broke this goal by ~24px — re-closed with the same kind of small,
-  proportionate trims as before (this time: the bottom line's own
-  padding/margin, plus a further trim to `.verdict-strip`'s top margin)
-  rather than one drastic cut, then re-verified.
-  - Two things make this robust where an earlier attempt at the same
-    idea wasn't. First, the flex-sizing rules are on `#dashboard-area`
-    itself — the earlier version applied them to `.dashboard-grid`, but
-    `.dashboard-grid`'s actual parent (`#dashboard-area`) was never
-    itself made a flex container, so the rules were silently inert, and
-    the region collapsed to a few px with its content still there but
-    unreachable. Second, `.page` uses `overflow-y: auto`, not `hidden` —
-    `.claims-column` has a `min-height: 240px` floor, so if some edge
-    case (a very short window, a dial wrapping to two lines) ever leaves
-    less room than that floor needs, the *page* gracefully gains a small
-    scroll instead of clipping content into unreachability again.
-    Verified directly: forcing the history panel open after a result
-    exists (an edge case the auto-collapse below prevents in normal use)
-    leaves `.claims-column` at its 240px floor and makes the page
-    scrollable by the small excess, rather than losing content.
-  - The input textarea drops to 2 rows once a result exists
+  else `Mixed or context-dependent`) plus the four dials — a single row of
+  four from 900px up, a legible full-width single column on mobile. Each
+  dial's current level *and* its one-line justification both render
+  unconditionally now, no click needed for either.
+- **Desktop** (~900px+): normal page flow, not a fixed-height shell. Only
+  the hero is guaranteed to render fully on-screen without scrolling
+  (verified at 1280/1440px, both languages) — the dials and claim
+  breakdown are explicitly allowed to require scrolling, which is what let
+  this drop the earlier fixed-height mechanism entirely (see
+  **Information hierarchy** above for why, and for the history of that
+  mechanism breaking three times before it was removed). The claim
+  breakdown and evidence sit in a plain two-column CSS grid
+  (`.dashboard-grid`, `1fr 320px`) with no imposed height.
+  - The input textarea still drops to 2 rows once a result exists
     (`resize: vertical` still lets you drag it back open), and the
-    history panel auto-collapses the moment a new analysis starts —
-    together these are most of what makes the verdict/dials fit above
-    the fold in the first place.
-  - The evidence rail hides entirely (and claim cards take the full
+    history panel still auto-collapses the moment a new analysis starts —
+    together these are most of what keeps the hero above the fold.
+  - The evidence rail still hides entirely (and claim cards take the full
     width) when no claim has grounded sources — an empty bordered box
     with nothing in it is clutter, not a module.
-- **Mobile**: verdict layer (dials as a 2×2 grid), then claim cards
-  stacked, each with its own "Sources (n)" expander instead of a shared
-  rail. Below the 900px breakpoint the layout is just this single-column
-  stack with normal page scrolling — no separate tablet layout; a 768px
-  viewport falls into the same bucket rather than trying to force the
-  desktop 2-column grid into a width too narrow to do it justice. Small
-  interactive controls (`.lang-btn`, the history "Show again"/"Clear
-  history" buttons, the history panel's own toggle) all have a
-  `min-height: 34px` tap target.
+- **Mobile**: hero card first, then dials stacked full-width, then claim
+  cards, each with its top 1-2 sources inline and a "Show all sources"
+  toggle for the rest instead of a shared rail. Below the 900px breakpoint
+  the layout is just this single-column stack with normal page scrolling —
+  no separate tablet layout; a 768px viewport falls into the same bucket
+  rather than trying to force the desktop 2-column grid into a width too
+  narrow to do it justice. Small interactive controls (`.lang-btn`, the
+  history "Show again"/"Clear history" buttons, the history panel's own
+  toggle) all have a `min-height: 34px` tap target.
 - **History**: every successful analysis is saved to `localStorage`
   (`claimBreakdownHistory`, capped at 20 — oldest dropped first) as
   `{ savedAt, lang, originalText, data }`, where `data` is the *entire*

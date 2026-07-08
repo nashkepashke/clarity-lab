@@ -3,10 +3,16 @@
    moments (page title, the bottom-line verdict sentence), a Hebrew/Latin
    humanist sans (Assistant) for everything else, a warm paper background,
    one confident ink, a single considered accent, and desaturated
-   traffic-light functional colors. Mobile-first: input + verdict + claim
-   cards stack in a single column. From ~900px up, the dashboard becomes a
-   fixed-height shell (header/input/verdict stay put) with claim cards and
-   the evidence rail scrolling independently inside it. */
+   traffic-light functional colors.
+
+   Information hierarchy: the bottom-line hero card is the one thing
+   guaranteed visible above the fold on both mobile and desktop — a solid
+   colored band (action) over a paper body (verdict sentence + rationale),
+   deliberately louder (bigger type, real shadow) than everything below it.
+   Supporting detail (dials, claim breakdown, evidence) is intentionally
+   quieter and free to require scrolling — normal page flow, no fixed-height
+   shell. Mobile-first throughout; from ~900px up the claim breakdown and
+   evidence sit in a two-column grid. */
 
 :root {
   /* ---- Type ---- */
@@ -474,12 +480,13 @@ body {
   line-height: 1.6;
 }
 
+/* Deliberately quieter than the hero (see above) — a plain border, no
+   shadow. Big cards with real presence via generous padding, not elevation. */
 .result-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: var(--space-5);
-  box-shadow: 0 1px 2px rgba(30, 27, 20, 0.04), 0 8px 20px -14px rgba(30, 27, 20, 0.18);
 }
 
 .result-claim {
@@ -594,6 +601,64 @@ body {
 .framing-signal-note {
   color: var(--text-muted);
   line-height: 1.55;
+}
+
+/* Promoted to always-visible — one of the highest-value lines in the card,
+   shouldn't cost a click. A left accent bar (not a full tinted box) keeps
+   it noticeable without competing with the hero's own colored band. */
+.missing-context {
+  margin: 0 0 var(--space-3);
+  padding: 0.6rem 0.85rem;
+  background: var(--bg);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: 6px;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.missing-context strong {
+  font-weight: 700;
+}
+
+.inline-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0 0 var(--space-3);
+}
+
+.no-sources-note {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  margin: 0;
+}
+
+/* Sub-blocks inside the single consolidated "Full analysis" toggle — a
+   heading + content each, separated by spacing only (no per-item border),
+   so opening it reads as one organized passage, not more small boxes. */
+.full-analysis-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.full-analysis-item-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 0.3rem;
+}
+
+.full-analysis-item p,
+.full-analysis-item ul {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: 1.65;
+  color: var(--text);
 }
 
 .claim-error {
@@ -793,41 +858,47 @@ body {
   text-transform: uppercase;
 }
 
-/* ---------- Bottom line (verdict sentence + traffic-light action) ---------- */
+/* ---------- Bottom line: the hero ---------- */
+/* Deliberately louder than everything below it — a solid colored band
+   (never a tint alone; color is paired with an icon + text label for
+   colorblind-safe reading) over a paper body carrying the actual headline.
+   This is the one card in the whole page meant to dominate. */
 
-/* :not([hidden]) guard — see the identical note on .image-preview above;
-   this codebase has hit the [hidden]-vs-display cascade bug twice already
-   this session and this is a new conditionally-shown element. */
+/* :not([hidden]) guard — this codebase has hit the [hidden]-vs-display
+   cascade bug three times already this session (see README) for
+   conditionally-shown elements with a class-selector display rule. */
 .bottom-line:not([hidden]) {
   display: block;
+  overflow: hidden;
   background: var(--surface);
-  border-radius: 16px;
-  padding: 0.85rem 1.15rem;
-  box-shadow: 0 1px 2px rgba(30, 27, 20, 0.04), 0 8px 20px -14px rgba(30, 27, 20, 0.2);
-  margin-top: 0.9rem;
-  border-inline-start: 4px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(30, 27, 20, 0.06), 0 14px 32px -12px rgba(30, 27, 20, 0.28);
+  margin-top: 1.25rem;
 }
 
-.bottom-line-green { background: #eef4ea; border-inline-start-color: var(--supported-text); }
-.bottom-line-amber { background: #fbf3e0; border-inline-start-color: var(--mixed-text); }
-.bottom-line-red { background: #f8ebea; border-inline-start-color: var(--contradicted-text); }
-
-.bottom-line-action {
+.bottom-line-band {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 0.35rem;
+  gap: 0.65rem;
+  padding: 0.9rem 1.5rem;
 }
+
+/* Solid, not tinted — these reuse the existing badge-text colors, already
+   verified at 6-8:1 contrast against white text. */
+.bottom-line-green .bottom-line-band { background: var(--supported-text); }
+.bottom-line-amber .bottom-line-band { background: var(--mixed-text); }
+.bottom-line-red .bottom-line-band { background: var(--contradicted-text); }
 
 .action-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 19px;
-  height: 19px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 1rem;
   font-weight: bold;
   flex-shrink: 0;
 }
@@ -835,47 +906,48 @@ body {
 .action-label {
   font-family: var(--font-ui);
   font-weight: 700;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 1.05rem;
+  color: #fff;
+  letter-spacing: 0.01em;
 }
 
-.bottom-line-green .action-icon, .bottom-line-green .action-label { color: var(--supported-text); }
-.bottom-line-amber .action-icon, .bottom-line-amber .action-label { color: var(--mixed-text); }
-.bottom-line-red .action-icon, .bottom-line-red .action-label { color: var(--contradicted-text); }
+.bottom-line-body {
+  padding: 1.5rem 1.5rem 1.75rem;
+}
 
 .bottom-line-sentence {
   font-family: var(--font-display);
-  font-size: var(--fs-lg);
+  font-size: 1.6rem;
   font-weight: 500;
-  line-height: 1.32;
+  line-height: 1.3;
   color: var(--text);
-  margin: 0 0 0.3rem;
+  margin: 0 0 0.65rem;
 }
 
 .bottom-line-rationale {
   font-family: var(--font-ui);
-  font-size: var(--fs-sm);
-  line-height: 1.55;
+  font-size: var(--fs-base);
+  line-height: 1.6;
   color: var(--text-muted);
   margin: 0;
 }
 
+@media (min-width: 520px) {
+  .bottom-line-sentence {
+    font-size: 1.85rem;
+  }
+}
+
 /* ---------- Verdict strip + dials ---------- */
+/* Deliberately quieter than the hero above — a plain border, no shadow —
+   so the visual contrast between "read this first" and "supporting detail"
+   works in both directions, not just by making the hero bigger. */
 
 .verdict-strip {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 0.9rem 1.25rem;
-  box-shadow: 0 1px 2px rgba(30, 27, 20, 0.04), 0 8px 20px -14px rgba(30, 27, 20, 0.18);
-  margin-top: 0.5rem;
-}
-
-/* Restores the full top gap when there's no bottom line to show (a failed
-   synthesis call, or a history entry saved before this feature existed) —
-   .verdict-strip becomes visually first in that case. */
-.bottom-line[hidden] + .verdict-strip {
+  padding: 1.1rem 1.25rem;
   margin-top: 1.5rem;
 }
 
@@ -897,55 +969,44 @@ body {
   color: var(--text-muted);
 }
 
+/* One column on mobile (full-width rows, real legibility over density);
+   a single row of four from 900px up (see media query below). Each dial's
+   current level AND what it means both render unconditionally — no click
+   needed for either, unlike the old per-dial <details>. */
 .dials {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
 }
 
 .dial {
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.5rem 0.7rem;
-  transition: border-color 0.15s ease;
-}
-
-.dial[open] {
-  border-color: #d3cfc2;
-}
-
-.dial summary {
-  cursor: pointer;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.dial summary::-webkit-details-marker {
-  display: none;
+  border-radius: 10px;
+  padding: 0.9rem 1.05rem;
 }
 
 .dial-name {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.55rem;
 }
 
 .dial-segments {
   display: flex;
-  gap: 0.3rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
+  margin-bottom: 0.65rem;
 }
 
 .dial-segment {
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   font-weight: 500;
-  padding: 0.22rem 0.55rem;
-  border-radius: 5px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
   background: var(--bg);
   color: var(--text-muted);
   border: 1px solid var(--border);
@@ -960,8 +1021,8 @@ body {
 }
 
 .dial-justification {
-  margin: 0.55rem 0 0;
-  font-size: var(--fs-xs);
+  margin: 0;
+  font-size: 0.88rem;
   line-height: 1.6;
   color: var(--text-muted);
 }
@@ -1014,50 +1075,18 @@ body {
 }
 
 @media (min-width: 900px) {
-  /* True no-scroll shell: .page is height:100vh and a column flexbox;
-     header/input/disclaimer keep their natural size (flex-shrink:0),
-     #dashboard-area (verdict strip + dashboard-grid) is the one region
-     that grows to fill what's left, and inside it .verdict-strip stays
-     natural-size while .dashboard-grid's row stretches to fill the
-     remainder, with .claims-column/.evidence-rail scrolling internally.
-     This is the same idea a previous pass attempted and got wrong — the
-     flex rules were applied to .dashboard-grid, but its actual parent
-     (#dashboard-area) was never itself made a flex container, so they
-     had no effect, and the region silently collapsed to a few px with
-     all its content still there but unreachable (.page used
-     overflow:hidden with no fallback). Two changes prevent a repeat:
-     (1) the flex-sizing rules are on #dashboard-area itself, which is
-     verified to actually be the flex child of .page here; (2) .page
-     uses overflow-y:auto, not hidden — if some edge case (a very short
-     window, a dial wrapping to two lines) ever leaves less room than
-     .claims-column's min-height floor, the page gracefully falls back
-     to scrolling that small excess instead of clipping content into
-     unreachability again. */
+  /* Deliberately simple: only the hero has to be guaranteed visible without
+     scrolling (verified separately — see the layout audit), so .page is a
+     normal-flow block, not a height:100vh shell. Two earlier passes built a
+     fixed-height flex shell with independently-scrolling inner regions to
+     keep the dials visible too, and it broke three separate times from
+     small unrelated changes (see README history) — once that requirement
+     was explicitly relaxed, the honest fix was removing the fragile
+     mechanism, not patching it again. Supporting detail (dials, claim
+     breakdown, evidence) now simply flows in normal page scroll below the
+     hero, in a two-column grid (breakdown / evidence). */
   .page {
     max-width: 1100px;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    padding-bottom: 1rem;
-  }
-
-  .page-header,
-  .input-card,
-  .disclaimer,
-  #error-area {
-    flex-shrink: 0;
-  }
-
-  .dashboard-area:not([hidden]) {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .verdict-strip {
-    flex-shrink: 0;
   }
 
   .dials {
@@ -1065,21 +1094,14 @@ body {
   }
 
   .dashboard-grid {
-    flex: 1 1 auto;
-    min-height: 0;
     display: grid;
     grid-template-columns: 1fr 320px;
     gap: var(--space-5);
+    align-items: start;
   }
 
   .dashboard-grid.no-rail {
     grid-template-columns: 1fr;
-  }
-
-  .claims-column {
-    overflow-y: auto;
-    min-height: 240px;
-    padding-inline-end: 0.25rem;
   }
 
   /* :not([hidden]) guard: without it, this class-selector display:block
@@ -1088,8 +1110,6 @@ body {
      from JS wouldn't actually hide it once this rule applies. */
   .evidence-rail:not([hidden]) {
     display: block;
-    overflow-y: auto;
-    min-height: 120px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;

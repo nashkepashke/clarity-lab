@@ -334,19 +334,21 @@ function renderVerdictStrip(data) {
   });
 }
 
+// A plain block, not a <details> — the current level and what it means
+// should both read at a glance, not require a click to reveal the
+// justification. Reducing click-through for this is the whole point of
+// this pass.
 function renderDial(key, dialData) {
   var dialT = T.epistemicProfile[key];
-  var details = document.createElement("details");
-  details.className = "dial";
+  var wrap = document.createElement("div");
+  wrap.className = "dial";
 
-  var summary = document.createElement("summary");
-
-  var nameEl = document.createElement("span");
+  var nameEl = document.createElement("p");
   nameEl.className = "dial-name";
   nameEl.textContent = dialT.name;
-  summary.appendChild(nameEl);
+  wrap.appendChild(nameEl);
 
-  var segments = document.createElement("span");
+  var segments = document.createElement("div");
   segments.className = "dial-segments";
   Object.keys(dialT.levels).forEach(function (levelKey) {
     var seg = document.createElement("span");
@@ -354,16 +356,15 @@ function renderDial(key, dialData) {
     seg.textContent = dialT.levels[levelKey];
     segments.appendChild(seg);
   });
-  summary.appendChild(segments);
-  details.appendChild(summary);
+  wrap.appendChild(segments);
 
   var justification = document.createElement("p");
   justification.className = "dial-justification";
   var justifyFn = dialT.justify[dialData.level];
   justification.textContent = justifyFn ? justifyFn(dialData) : "";
-  details.appendChild(justification);
+  wrap.appendChild(justification);
 
-  return details;
+  return wrap;
 }
 
 function renderClaimsColumn(claims) {
@@ -436,59 +437,127 @@ function renderClaimCard(claim, allClaims) {
     card.appendChild(renderFramingSignals(claim.framingSignals));
   }
 
-  // Gated purely by field presence, not claim.type — this is what makes
-  // partial/old-format stored (history) data render safely: whatever
-  // fields exist show up, whatever's missing is silently skipped.
-  var textSectionFields = [
-    "whatWouldChangeAssessment", "evidenceSummary", "denominatorCheck", "precisionCheck",
-    "mostRelevantSourceCheck", "missingContext",
-    "distinguishingEvidence", "referenceClassAndBaseRate", "feasibility", "tension", "steelman", "strawmanWarning"
-  ];
-  textSectionFields.forEach(function (field) {
-    if (claim[field]) {
-      card.appendChild(
-        makeDetailsSection(T.sections[field], function () {
-          var p = document.createElement("p");
-          p.dir = "auto";
-          p.textContent = claim[field];
-          return p;
-        })
-      );
-    }
-  });
-
-  if (Array.isArray(claim.alternativeExplanations) && claim.alternativeExplanations.length > 0) {
-    card.appendChild(
-      makeDetailsSection(T.sections.alternativeExplanations, function () {
-        return buildTextList(claim.alternativeExplanations);
-      })
-    );
+  // Promoted to always-visible — this is one of the highest-value lines in
+  // the whole card and shouldn't cost a click, same tier as confidenceReason
+  // and framingSignals above.
+  if (claim.missingContext) {
+    var missingEl = document.createElement("p");
+    missingEl.className = "missing-context";
+    missingEl.dir = "auto";
+    var missingLabel = document.createElement("strong");
+    missingLabel.textContent = T.sections.missingContext + ": ";
+    missingEl.appendChild(missingLabel);
+    missingEl.appendChild(document.createTextNode(claim.missingContext));
+    card.appendChild(missingEl);
   }
 
-  if (claim.correlationCautionNote) {
-    card.appendChild(
-      makeDetailsSection(T.sections.correlationCaution, function () {
-        var p = document.createElement("p");
-        p.dir = "auto";
-        p.textContent = claim.correlationCautionNote;
-        return p;
-      })
-    );
+  // Top 1-2 sources render inline, unconditionally — only the rest (if any)
+  // sit behind a click. Replaces the old fully-collapsed "Sources (n)".
+  if (Array.isArray(claim.sources)) {
+    card.appendChild(renderSourcesBlock(claim.sources));
   }
 
   if (Array.isArray(claim.premiseIds) && claim.premiseIds.length > 0) {
     card.appendChild(buildRelatedPremises(claim.premiseIds, allClaims));
   }
 
-  if (claim.sources) {
+  // Everything else genuinely secondary collapses into ONE toggle instead
+  // of a separate one per field — one click reveals a well-organized read,
+  // not seven identical-looking accordion rows. Still gated purely by field
+  // presence, so old/partial history entries render safely either way.
+  var fullAnalysisFields = [
+    "whatWouldChangeAssessment", "evidenceSummary", "denominatorCheck", "precisionCheck",
+    "mostRelevantSourceCheck", "distinguishingEvidence", "referenceClassAndBaseRate",
+    "feasibility", "tension", "steelman", "strawmanWarning"
+  ];
+  var hasFullAnalysisContent =
+    fullAnalysisFields.some(function (field) { return !!claim[field]; }) ||
+    (Array.isArray(claim.alternativeExplanations) && claim.alternativeExplanations.length > 0) ||
+    !!claim.correlationCautionNote;
+
+  if (hasFullAnalysisContent) {
     card.appendChild(
-      makeDetailsSection(T.claim.sources(claim.sources.length), function () {
-        return buildSourceList(claim.sources);
+      makeDetailsSection(T.claim.fullAnalysis, function () {
+        var body = document.createElement("div");
+        body.className = "full-analysis-body";
+
+        fullAnalysisFields.forEach(function (field) {
+          if (claim[field]) {
+            body.appendChild(buildFullAnalysisItem(T.sections[field], claim[field]));
+          }
+        });
+
+        if (Array.isArray(claim.alternativeExplanations) && claim.alternativeExplanations.length > 0) {
+          body.appendChild(buildFullAnalysisItem(T.sections.alternativeExplanations, null, function () {
+            return buildTextList(claim.alternativeExplanations);
+          }));
+        }
+
+        if (claim.correlationCautionNote) {
+          body.appendChild(buildFullAnalysisItem(T.sections.correlationCaution, claim.correlationCautionNote));
+        }
+
+        return body;
       })
     );
   }
 
   return card;
+}
+
+// One labeled sub-block inside the consolidated "Full analysis" section —
+// a heading + content, not its own clickable <details>.
+function buildFullAnalysisItem(label, text, customBodyFn) {
+  var item = document.createElement("div");
+  item.className = "full-analysis-item";
+
+  var heading = document.createElement("p");
+  heading.className = "full-analysis-item-label";
+  heading.textContent = label;
+  item.appendChild(heading);
+
+  if (customBodyFn) {
+    item.appendChild(customBodyFn());
+  } else {
+    var p = document.createElement("p");
+    p.dir = "auto";
+    p.textContent = text;
+    item.appendChild(p);
+  }
+
+  return item;
+}
+
+// Top 1-2 sources (by existing tier priority) always visible inline; the
+// rest, if any, sit behind one "see all" toggle showing the complete list.
+// grounded-but-empty renders a small note instead of an expander with
+// nothing useful in it.
+function renderSourcesBlock(sources) {
+  var wrap = document.createElement("div");
+  wrap.className = "inline-sources";
+
+  if (sources.length === 0) {
+    var empty = document.createElement("p");
+    empty.className = "no-sources-note";
+    empty.textContent = T.claim.noSources;
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  var sorted = sortSourcesByTier(sources);
+  sorted.slice(0, 2).forEach(function (source) {
+    wrap.appendChild(buildSourceCard(source));
+  });
+
+  if (sources.length > 2) {
+    wrap.appendChild(
+      makeDetailsSection(T.claim.showAllSources(sources.length), function () {
+        return buildSourceList(sources);
+      })
+    );
+  }
+
+  return wrap;
 }
 
 // Neutral "heads up" flags — not collapsed inside a <details>, same
