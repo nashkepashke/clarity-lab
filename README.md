@@ -507,10 +507,22 @@ without clicking.
   by calling `/api/verdict` directly with fixed, controlled input three
   times in a row and getting the correct answer every time. The verdict
   prompt's existing "never contradict the per-claim assessment" instruction
-  only spells out one example (`Contradicted` → not `well_supported`) and
-  doesn't generalize to `Not enough information`; worth tightening in a
-  future pass that's actually scoped to touch `api/verdict.js`, which this
-  one explicitly wasn't.
+  only spelled out one example (`Contradicted` → not `well_supported`) and
+  didn't generalize to `Not enough information`.
+
+  **Fixed** in a follow-up pass, the same way `api/evidence.js`'s own
+  "zero sources found" case is handled: a prompt fix plus a code-level
+  guarantee, not model self-regulation alone. The prompt now spells out the
+  `Not enough information` case explicitly ("a source exists" is not the
+  same as "the source supports the claim"), and `api/verdict.js`
+  additionally forces `verdictType` to `insufficient_info` whenever *every*
+  assessed (non-error) claim came back exactly `"Not enough information"` —
+  regardless of what the model answered. Verified live: the original repro
+  (single claim, zero sources found) now returns `insufficient_info`
+  consistently across three repeated calls; a mixed-input control (one
+  `Supported` claim plus one `Not enough information` claim) still
+  correctly returns `mixed_claims`, confirming the guarantee only fires on
+  the all-insufficient case, not any time the phrase appears.
 
 ## Dashboard
 

@@ -78,8 +78,13 @@ function buildSystemInstruction(lang) {
     "- mixed_claims: the submission contains several claims with genuinely different verdicts " +
     "and no single pattern above describes the whole thing fairly.\n" +
     "Weigh the whole set of claims, not just the first one. Never pick a type that " +
-    "contradicts what the per-claim assessments actually say (e.g. don't pick well_supported " +
-    "if the claims were assessed Contradicted). If the input has just one claim, the type " +
+    "contradicts what the per-claim assessments actually say. Two concrete examples: don't " +
+    "pick well_supported if the claims were assessed Contradicted; and if every checkable " +
+    "claim came back assessed exactly 'Not enough information' (no source-checked claim was " +
+    "Supported, Mostly supported, Mixed or context-dependent, or Contradicted), the type MUST " +
+    "be insufficient_info — never well_supported, even if a source was cited somewhere, since " +
+    "'a source exists' is not the same as 'the source supports the claim'. If the input has " +
+    "just one claim, the type should follow directly from that claim's own type and " +
     "should follow directly from that claim's own type and assessment. A Normative claim is " +
     "often listed together with a factual premise extracted from inside it (e.g. 'this unfair " +
     "law raised unemployment' produces both a Normative claim and an Empirical/Causal one) — " +
@@ -166,8 +171,21 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const verdictType = VERDICT_TYPES.indexOf(outcome.result.verdictType) !== -1 ? outcome.result.verdictType : "insufficient_info";
+  let verdictType = VERDICT_TYPES.indexOf(outcome.result.verdictType) !== -1 ? outcome.result.verdictType : "insufficient_info";
   const customClause = typeof outcome.result.customClause === "string" ? outcome.result.customClause.trim() : "";
+
+  // Code-level guarantee, not model self-regulation — mirrors the same
+  // "zero sources found -> force Not enough information" safety net in
+  // api/evidence.js. Caught live: the model was inconsistent picking
+  // between insufficient_info and well_supported for the exact same
+  // all-"Not enough information" input across repeated calls.
+  const assessedClaims = claims.filter(function (c) { return !c.error && c.assessment; });
+  const allInsufficient = assessedClaims.length > 0 && assessedClaims.every(function (c) {
+    return c.assessment === "Not enough information";
+  });
+  if (allInsufficient) {
+    verdictType = "insufficient_info";
+  }
 
   res.status(200).json({ verdictType: verdictType, customClause: customClause });
 };
