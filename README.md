@@ -19,8 +19,8 @@ active.
 
 ## How it works
 
-1. You paste text into the textarea (or click an example chip) — or paste
-   a screenshot with Ctrl+V, drag-and-drop one, or use the upload button
+1. You paste text into the textarea — or paste a screenshot with Ctrl+V,
+   drag-and-drop one, or use the upload button
    (which also opens the camera roll on mobile). An attached image first
    goes through a separate **`POST /api/extract`** call that transcribes
    whatever claim/statement is in it into the same textarea, editable,
@@ -139,10 +139,10 @@ camera roll included, rather than forcing the camera).
 
 | File | Purpose |
 |---|---|
-| `index.html` | Page structure only — chips, input, language toggle, history panel, and empty slots for the bottom line / verdict strip / claim cards / evidence rail / error message. No hardcoded user-facing text; everything comes from `translations.js`. `<head>` also loads the two Google Fonts used by `styles.css` (see **Visual design**). |
+| `index.html` | Page structure only — input, language toggle, history panel, and empty slots for the bottom line / verdict strip / claim cards / evidence rail / error message. No example chips (removed — see **Bold redesign**) and no hardcoded user-facing text; everything comes from `translations.js`. `<head>` also loads the two Google Fonts used by `styles.css` (see **Visual design**). |
 | `translations.js` | The single source of truth for every user-facing string, keyed by language: labels, section titles, badge display labels (mapped from the API's fixed English enum/type values), epistemic-profile dial names/levels/justification templates, verdict-type base sentences/rationales/action labels, framing-signal labels, source tier labels, error messages (by code), history/disclaimer text. |
-| `styles.css` | An editorial/think-tank visual system: a Frank Ruhl Libre serif for headline moments paired with Assistant (Hebrew/Latin humanist sans) everywhere else, a named type/spacing scale, a warm-paper/ink/single-accent palette with WCAG-checked desaturated traffic-light colors, badge colors per type/assessment/confidence/source-tier. See **Visual design**. The hero (bottom line) is deliberately louder than every other card (solid color band, real shadow); supporting cards are deliberately quieter (plain border, no shadow). Logical properties throughout (`text-align: start`, `padding-inline-start`, flex/grid) so RTL mirrors automatically. From ~900px up, the claim breakdown and evidence sit in a plain two-column grid with normal page scroll — see **Information hierarchy** for why this is no longer a fixed-height shell. |
-| `app.js` | Page logic: language state, the three-phase loading label, rendering the bottom line/verdict strip/dials/claim cards/evidence rail, `VERDICT_ACTION_MAP` (the auditable verdictType→traffic-light table), and the localStorage history panel. Doesn't know how the analysis is produced. |
+| `styles.css` | A bold single-accent visual system: one indigo accent (`--accent`) for every interactive element, and a four-value `good`/`warn`/`bad`/`neutral` tone system (solid, saturated, WCAG-checked against white text) driving the hero band, the epistemic-profile dials (solid tiles), and every claim card's accent bar + tinted wash. See **Bold redesign**. Still Frank Ruhl Libre for headline moments + Assistant everywhere else (see **Visual design**), still logical properties throughout (`text-align: start`, `padding-inline-start`, flex/grid) so RTL mirrors automatically. From ~900px up, the claim breakdown and evidence sit in a plain two-column grid with normal page scroll — see **Information hierarchy** for why this is no longer a fixed-height shell. |
+| `app.js` | Page logic: language state, the three-phase loading label, rendering the bottom line/verdict strip/dials/claim cards/evidence rail, `VERDICT_ACTION_MAP` (the auditable verdictType→traffic-light table), `DIAL_TONE`/`ASSESSMENT_TONE` (the tone-system lookup tables, see **Bold redesign**), and the localStorage history panel. Doesn't know how the analysis is produced. |
 | `analyzeClaim.js` | The only file that talks to the backend. Calls `/api/triage`, then `/api/evidence`, then (if at least one claim succeeded) `/api/verdict`, reports progress via an `onProgress` callback, and combines all three responses into `{ claims, epistemicProfile, overallAssessment, verdict }` — `app.js` never sees that this is three calls. Also computes the epistemic profile (see below). A `/api/verdict` failure is caught and degrades to `verdict: null` rather than failing the request. Rejects with an `Error` carrying a `.code`, never English text. |
 | `api/triage.js` | Call 1 — decomposition + typing + premise extraction. |
 | `api/evidence.js` | Call 2 — per-claim grounded/ungrounded analysis, with a same-claim fallback (grounded → ungrounded) if the grounding-tool call itself fails, and a "zero sources found → force `Not enough information`" safety net. |
@@ -418,8 +418,10 @@ mapping, or data model touched.
   replaced that with a full-width solid colored band, deliberately made the
   loudest thing on the page.
 - **Dials** kept their flat horizontal-segment concept (still no
-  gauges/needles/emoji); a later pass (below) made them bigger and dropped
-  the per-dial click. **Claim cards** got a serif italic treatment for the
+  gauges/needles/emoji) at this stage; a later pass (below) made them
+  bigger and dropped the per-dial click, and a still-later bold redesign
+  (see **Bold redesign** below) replaced the segment row entirely with a
+  solid tone-colored tile. **Claim cards** got a serif italic treatment for the
   quoted claim text (a natural pull-quote convention) and more considered
   section-header typography — a later pass reduced their shadow to keep
   them deliberately quieter than the hero (below). **Source cards** got a
@@ -523,6 +525,74 @@ without clicking.
   `Supported` claim plus one `Not enough information` claim) still
   correctly returns `mixed_claims`, confirming the guarantee only fires on
   the all-insufficient case, not any time the phrase appears.
+
+## Bold redesign: examples removed, a tone system, single-accent palette
+
+A full visual pass on top of the two above, prompted by wanting something
+punchier: bold saturated color instead of desaturated editorial tones,
+larger type throughout, and the example chips gone entirely (`T.chips` and
+`renderChips()` no longer exist in `translations.js`/`app.js` — there's
+nothing left to pick, only the textarea and image input). The page title/
+subtitle changed too: "Claim Breakdown" → **Clarity Lab** (Hebrew: פירוק
+טענות → **מעבדת הבהירות**), with a shorter, punchier subtitle in both
+languages.
+
+- **A tone system, not per-component color choices.** Four semantic tones
+  — `good`/`warn`/`bad`/`neutral` (green/amber/red/slate) — now drive every
+  place a verdict actually lives: the hero band (unchanged mapping, just
+  more saturated), the four epistemic-profile dials, and — new — every
+  claim card's own left accent bar + tinted background wash. `app.js` adds
+  two small lookup tables to compute tone from data: `DIAL_TONE` (per-dial,
+  since e.g. "values-or-prediction" for checkability is neutral, not bad —
+  it describes a claim *type*, not a shortfall) and `ASSESSMENT_TONE`
+  (`Supported`/`Mostly supported` → good, `Contradicted` → bad, etc.),
+  applied as a `claim-card-tone-*` class alongside the existing
+  `result-card` class. Claim TYPE colors (empirical/causal/prediction/
+  normative) deliberately stay their own distinct hues, separate from the
+  tone system — type and tone answer different questions and shouldn't be
+  visually conflated.
+- **Dials dropped the segment row entirely.** The old design showed all
+  three-or-four possible levels per dial with one highlighted; the bold
+  redesign shows only the current level, as a big solid-color tile (name +
+  large level label + justification, all in white text on the tone color)
+  — reads as one clear bold answer instead of a legend to decode, and is
+  more compact besides.
+- **Colors were picked and re-checked for contrast, not eyeballed.** The
+  four solid tone colors (`--tone-good: #157a3d`, `--tone-warn: #b45309`,
+  `--tone-bad: #b91c1c`, `--tone-neutral: #46506b`) were chosen to clear
+  4.5:1 against white text at their actual usage sizes (dial justification
+  text, badge text) — the first amber tried (`#92400e`) passed contrast
+  comfortably but read as muddy brown rather than bold in a live
+  screenshot; `#b45309` (still ~5:1) reads as a genuinely vivid amber.
+  Caught by rendering it, not by trusting the contrast math alone.
+- **Single accent, one indigo-blue (`--accent: #3651e0`)**, for every
+  interactive element (buttons, focus rings, links, the active language
+  toggle) — replacing the previous muted "ink" accent. Background moved
+  from a warm paper tone to a cool light neutral (`--bg: #eef1f8`) to let
+  the bolder colors pop against it instead of competing with warmth.
+- **Fits on one screen — earned honestly, not forced.** A previous pass
+  (see **Information hierarchy** above) explicitly removed a fixed-
+  viewport shell with independently-scrolling inner regions after it broke
+  three separate times from unrelated edits, and deliberately relaxed the
+  "everything visible without scrolling" goal to just the hero. This pass
+  does not reintroduce that shell. Instead it earns real compactness:
+  removing the example chips shrinks the input card outright; once a
+  result exists, the marketing subtitle hides (`subtitleEl.hidden = true`
+  in `renderDashboard`) and the input card gets an `input-card-collapsed`
+  class that tightens its padding — both reset on a language switch, the
+  existing "fresh start" moment. Verified live at 1440×900 (Playwright,
+  calling `renderDashboard()` directly with fixture data, no live Gemini
+  calls needed to check layout): a single-claim result's hero *and*
+  verdict-strip dials now fit with zero scrolling (bottom edge at 874px of
+  900); the claim-by-claim breakdown with sources below that still
+  requires a short scroll, same as a multi-claim result — an honest
+  outcome, not a claim that everything always fits.
+- **Verified live** (Playwright, both languages, desktop 1440×900 and
+  mobile 390×844, fixture data): no chips remain in the DOM, no horizontal
+  scroll at either breakpoint, RTL/LTR both render correctly with the new
+  copy, and the tone-colored claim cards/dials/hero all show correctly
+  across a `Contradicted` single claim, a `Mostly supported`/`Contradicted`
+  mixed pair, and both language directions.
 
 ## Dashboard
 

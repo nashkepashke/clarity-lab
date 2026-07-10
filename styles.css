@@ -1,75 +1,78 @@
 /* styles.css
-   Editorial/think-tank register: a serif for the handful of headline
-   moments (page title, the bottom-line verdict sentence), a Hebrew/Latin
-   humanist sans (Assistant) for everything else, a warm paper background,
-   one confident ink, a single considered accent, and desaturated
-   traffic-light functional colors.
+   Bold, single-accent register: one confident indigo accent for every
+   interactive element, and a small "tone" system (good/warn/bad/neutral)
+   that drives solid, saturated color everywhere a verdict actually lives —
+   the hero band, the four epistemic-profile dials (now solid color tiles,
+   not neutral outlined segments), and a colored left bar + tinted wash on
+   every claim card. Badges/type colors stay their own distinct hues so
+   claim TYPE (empirical/causal/prediction/normative) is never confused
+   with claim TONE (good/warn/bad/neutral) — two different questions.
 
-   Information hierarchy: the bottom-line hero card is the one thing
-   guaranteed visible above the fold on both mobile and desktop — a solid
-   colored band (action) over a paper body (verdict sentence + rationale),
-   deliberately louder (bigger type, real shadow) than everything below it.
-   Supporting detail (dials, claim breakdown, evidence) is intentionally
-   quieter and free to require scrolling — normal page flow, no fixed-height
-   shell. Mobile-first throughout; from ~900px up the claim breakdown and
-   evidence sit in a two-column grid. */
+   Layout: normal document flow throughout, no fixed-viewport shell. A
+   previous pass in this project built (and twice rebuilt) a fixed-height
+   flex shell with independently-scrolling inner regions to guarantee
+   everything fit above the fold on desktop — it broke three separate
+   times from small, unrelated changes and was deliberately removed. This
+   pass instead earns "fits on one screen" honestly: examples/chips are
+   gone, the input collapses hard once a result exists, and spacing is
+   tightened — verified live to fit a 1-2 claim result at 1440x900 with no
+   scrolling. More claims scroll normally, which is fine — a real, simple
+   page scroll beats a clever shell that breaks on the next unrelated edit. */
 
 :root {
   /* ---- Type ---- */
   --font-display: "Frank Ruhl Libre", Georgia, "Times New Roman", serif;
   --font-ui: "Assistant", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-  --fs-xs: 0.75rem;
-  --fs-sm: 0.85rem;
-  --fs-base: 0.95rem;
-  --fs-md: 1.05rem;
-  --fs-lg: 1.3rem;
-  --fs-xl: 1.75rem;
-  --fs-2xl: 2.1rem;
+  --fs-xs: 0.8rem;
+  --fs-sm: 0.92rem;
+  --fs-base: 1.05rem;
+  --fs-md: 1.2rem;
+  --fs-lg: 1.5rem;
+  --fs-xl: 2rem;
+  --fs-2xl: 2.6rem;
 
   /* ---- Spacing ---- */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
-  --space-5: 1.5rem;
-  --space-6: 2rem;
-  --space-8: 3rem;
+  --space-5: 1.4rem;
+  --space-6: 1.9rem;
+  --space-8: 2.6rem;
 
   /* ---- Palette ---- */
-  --bg: #f6f5f2;
+  --bg: #eef1f8;
   --surface: #ffffff;
-  --text: #24232a;
-  --text-muted: #68676f;
-  --border: #e3e0d8;
-  --accent: #2f4a63;
-  --accent-hover: #223549;
+  --text: #14161f;
+  --text-muted: #585c6e;
+  --border: #d9deec;
 
-  --factual-bg: #e4eef0;
-  --factual-text: #285e63;
-  --causal-bg: #e2eaf5;
-  --causal-text: #34567d;
-  --prediction-bg: #ece4f5;
-  --prediction-text: #5b3d8a;
-  --opinion-bg: #f5ece0;
-  --opinion-text: #8a5a2b;
+  --accent: #3651e0;
+  --accent-hover: #2a3fc0;
+  --accent-tint: #e7ebfe;
 
-  --supported-bg: #e2ecdd;
-  --supported-text: #2b5c27;
-  --mostly-supported-bg: #edf2e6;
-  --mostly-supported-text: #47702f;
-  --mixed-bg: #f7edd3;
-  --mixed-text: #7c5f18;
-  --contradicted-bg: #f4e0df;
-  --contradicted-text: #8c342d;
-  --unknown-bg: #eaeaea;
-  --unknown-text: #5a5a5f;
-  --not-assessable-bg: #ece8f0;
-  --not-assessable-text: #5c5468;
-  --too-recent-bg: #f6e7d7;
-  --too-recent-text: #8d5219;
-  --not-knowable-bg: #e8ecf2;
-  --not-knowable-text: #46587a;
+  /* Tone system: the ONE thing that recurs across hero / dials / claim
+     cards. Solid colors are used with white text (verified >=4.5:1);
+     tints are the light backgrounds paired with the solid color as text. */
+  --tone-good: #157a3d;
+  --tone-good-tint: #e3f7ea;
+  --tone-warn: #b45309;
+  --tone-warn-tint: #fdf1e0;
+  --tone-bad: #b91c1c;
+  --tone-bad-tint: #fbe6e6;
+  --tone-neutral: #46506b;
+  --tone-neutral-tint: #e9ebf3;
+
+  /* Claim-TYPE colors (distinct from tone, deliberately) */
+  --empirical-bg: #dbe7ff;
+  --empirical-text: #1d4ed8;
+  --causal-bg: #ece3ff;
+  --causal-text: #6d28d9;
+  --prediction-bg: #cff5fa;
+  --prediction-text: #0e7490;
+  --normative-bg: #ffe9d3;
+  --normative-text: #b8500f;
 }
 
 * {
@@ -90,13 +93,13 @@ body {
   color: var(--text);
   font-family: var(--font-ui);
   font-size: var(--fs-base);
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .page {
   max-width: 640px;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4) var(--space-8);
+  padding: var(--space-5) var(--space-4) var(--space-6);
 }
 
 .page-header {
@@ -108,25 +111,26 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .lang-btn {
   background: transparent;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   color: var(--text-muted);
   border-radius: 999px;
-  padding: 0.45rem 0.9rem;
+  padding: 0.4rem 0.85rem;
   font-family: var(--font-ui);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: 700;
   min-height: 34px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .lang-btn:hover {
-  border-color: #d3cfc2;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .lang-btn.active {
@@ -137,58 +141,56 @@ body {
 
 .page-header h1 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--fs-xl);
-  line-height: 1.25;
+  line-height: 1.2;
   letter-spacing: -0.01em;
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.35rem;
+  color: var(--text);
 }
 
 .subtitle {
   color: var(--text-muted);
   margin: 0;
   font-size: var(--fs-sm);
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .input-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
   padding: var(--space-5);
-  box-shadow: 0 1px 2px rgba(30, 27, 20, 0.04), 0 8px 20px -14px rgba(30, 27, 20, 0.18);
+  box-shadow: 0 1px 2px rgba(20, 22, 31, 0.04), 0 10px 24px -16px rgba(20, 22, 31, 0.18);
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .input-card.drag-over {
   border-color: var(--accent);
-  background: #f0f3f6;
+  background: var(--accent-tint);
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
+/* Applied once a result exists (renderDashboard) — the compose UI has
+   already done its job, so it earns much less vertical space, freeing
+   room for the hero + dials below to fit closer to one screen on desktop.
+   Reset back to normal on a language switch (a fresh start), see
+   applyLanguage. */
+.input-card.input-card-collapsed {
+  padding: var(--space-3) var(--space-5);
 }
 
-.chip {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 999px;
-  padding: 0.4rem 0.9rem;
-  font-family: var(--font-ui);
-  font-size: var(--fs-sm);
-  cursor: pointer;
-  text-align: start;
-  max-width: 100%;
-  transition: background 0.15s ease, border-color 0.15s ease;
+.input-card-collapsed .image-attach-row {
+  margin-bottom: 0.5rem;
 }
 
-.chip:hover {
-  background: #efece2;
-  border-color: #d3cfc2;
+.input-card-collapsed .analyze-btn {
+  margin-top: 0.65rem;
+  padding: 0.65rem;
+}
+
+.input-card-collapsed .history-panel {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
 }
 
 .image-attach-row {
@@ -201,20 +203,21 @@ body {
 
 .image-attach-btn {
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   color: var(--text);
   border-radius: 999px;
   padding: 0.4rem 0.9rem;
   font-family: var(--font-ui);
   font-size: var(--fs-sm);
+  font-weight: 600;
   min-height: 34px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .image-attach-btn:hover {
-  background: #efece2;
-  border-color: #d3cfc2;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .image-hint {
@@ -225,13 +228,12 @@ body {
 /* :not([hidden]) guard — without it this class-selector display:flex has
    equal specificity to (and comes after, in cascade order) the UA
    stylesheet's [hidden]{display:none}, so setting the hidden attribute
-   from JS wouldn't actually hide it once this rule applies. Same pitfall
-   already hit (and fixed) for #dashboard-area and .evidence-rail. */
+   from JS wouldn't actually hide it once this rule applies. */
 .image-preview:not([hidden]) {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 12px;
   padding: var(--space-3);
   margin-bottom: var(--space-4);
@@ -250,7 +252,7 @@ body {
 .image-remove-btn {
   margin-inline-start: auto;
   background: transparent;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 999px;
   width: 34px;
   height: 34px;
@@ -264,20 +266,21 @@ body {
 }
 
 .image-remove-btn:hover {
-  border-color: var(--contradicted-text);
-  color: var(--contradicted-text);
+  border-color: var(--tone-bad);
+  color: var(--tone-bad);
 }
 
 .extract-prompt {
   margin: -0.2rem 0 0.6rem;
   color: var(--accent);
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .input-label {
   display: block;
   font-size: var(--fs-sm);
+  font-weight: 600;
   color: var(--text-muted);
   margin-bottom: 0.4rem;
 }
@@ -285,9 +288,9 @@ body {
 .claim-input {
   width: 100%;
   resize: vertical;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.75rem 0.85rem;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 0.8rem 0.95rem;
   font-family: var(--font-ui);
   font-size: var(--fs-base);
   line-height: 1.55;
@@ -297,8 +300,8 @@ body {
 }
 
 .claim-input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: 3px solid var(--accent-tint);
+  outline-offset: 0;
   border-color: var(--accent);
 }
 
@@ -309,11 +312,11 @@ body {
   background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 12px;
-  padding: 0.85rem;
+  border-radius: 14px;
+  padding: 0.9rem;
   font-family: var(--font-ui);
-  font-size: var(--fs-base);
-  font-weight: 600;
+  font-size: var(--fs-md);
+  font-weight: 700;
   cursor: pointer;
   transition: background 0.15s ease;
   position: relative;
@@ -336,7 +339,7 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
   animation: analyze-sweep 1.6s ease-in-out infinite;
 }
 
@@ -348,7 +351,7 @@ body {
 /* ---------- History ---------- */
 
 .history-panel {
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
   border-top: 1px solid var(--border);
   padding-top: var(--space-3);
 }
@@ -356,7 +359,7 @@ body {
 .history-panel summary {
   cursor: pointer;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
   list-style: none;
   padding: 0.4rem 0;
@@ -367,7 +370,7 @@ body {
 }
 
 .history-panel summary:hover {
-  color: var(--text);
+  color: var(--accent);
 }
 
 .history-panel summary::-webkit-details-marker {
@@ -382,7 +385,7 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 260px;
+  max-height: 220px;
   overflow-y: auto;
 }
 
@@ -416,12 +419,12 @@ body {
 
 .history-restore-btn {
   background: transparent;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 999px;
   padding: 0.4rem 0.8rem;
   font-family: var(--font-ui);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: 700;
   min-height: 34px;
   cursor: pointer;
   color: var(--accent);
@@ -430,14 +433,14 @@ body {
 }
 
 .history-restore-btn:hover {
-  background: var(--bg);
-  border-color: #d3cfc2;
+  background: var(--accent-tint);
+  border-color: var(--accent);
 }
 
 .history-privacy-note {
   color: var(--text-muted);
   font-size: var(--fs-xs);
-  line-height: 1.6;
+  line-height: 1.55;
   margin: 0 0 var(--space-3);
 }
 
@@ -464,36 +467,46 @@ body {
 }
 
 .history-clear-btn:hover {
-  color: var(--contradicted-text);
+  color: var(--tone-bad);
 }
 
 /* ---------- Shared: errors, badges, collapsible sections ---------- */
 
 .error-message {
-  margin: var(--space-5) 0 0;
-  background: var(--contradicted-bg);
-  color: var(--contradicted-text);
-  border: 1px solid rgba(140, 52, 45, 0.22);
+  margin: var(--space-4) 0 0;
+  background: var(--tone-bad-tint);
+  color: var(--tone-bad);
+  border: 2px solid var(--tone-bad);
   border-radius: 12px;
   padding: 0.8rem 1.05rem;
   font-size: var(--fs-sm);
-  line-height: 1.6;
+  font-weight: 600;
+  line-height: 1.55;
 }
 
-/* Deliberately quieter than the hero (see above) — a plain border, no
-   shadow. Big cards with real presence via generous padding, not elevation. */
+/* Every claim card gets a bold colored left bar + a light tinted wash from
+   the tone system (good/warn/bad/neutral) — set via a claim-card-tone-*
+   class in app.js. This is the main "bold colored box" moment for the
+   claim breakdown, distinct from the badge colors (which encode TYPE, not
+   verdict tone). */
 .result-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
   padding: var(--space-5);
+  border-inline-start-width: 7px;
 }
+
+.claim-card-tone-good { border-inline-start-color: var(--tone-good); background: var(--tone-good-tint); }
+.claim-card-tone-warn { border-inline-start-color: var(--tone-warn); background: var(--tone-warn-tint); }
+.claim-card-tone-bad { border-inline-start-color: var(--tone-bad); background: var(--tone-bad-tint); }
+.claim-card-tone-neutral { border-inline-start-color: var(--tone-neutral); background: var(--tone-neutral-tint); }
 
 .result-claim {
   font-family: var(--font-display);
   font-size: var(--fs-md);
   font-style: italic;
-  line-height: 1.5;
+  line-height: 1.45;
   margin: 0 0 var(--space-4);
   color: var(--text);
 }
@@ -508,41 +521,41 @@ body {
 .badge {
   display: inline-block;
   border-radius: 999px;
-  padding: 0.3rem 0.75rem;
+  padding: 0.32rem 0.85rem;
   font-family: var(--font-ui);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: 700;
 }
 
-.badge-empirical { background: var(--factual-bg); color: var(--factual-text); }
+.badge-empirical { background: var(--empirical-bg); color: var(--empirical-text); }
 .badge-causal { background: var(--causal-bg); color: var(--causal-text); }
 .badge-prediction { background: var(--prediction-bg); color: var(--prediction-text); }
-.badge-normative { background: var(--opinion-bg); color: var(--opinion-text); }
-.badge-type-mixed { background: var(--unknown-bg); color: var(--unknown-text); }
+.badge-normative { background: var(--normative-bg); color: var(--normative-text); }
+.badge-type-mixed { background: var(--tone-neutral-tint); color: var(--tone-neutral); }
 
-.badge-supported { background: var(--supported-bg); color: var(--supported-text); }
-.badge-mostly-supported { background: var(--mostly-supported-bg); color: var(--mostly-supported-text); }
-.badge-mixed { background: var(--mixed-bg); color: var(--mixed-text); }
-.badge-contradicted { background: var(--contradicted-bg); color: var(--contradicted-text); }
-.badge-unknown { background: var(--unknown-bg); color: var(--unknown-text); }
-.badge-not-assessable { background: var(--not-assessable-bg); color: var(--not-assessable-text); }
-.badge-too-recent { background: var(--too-recent-bg); color: var(--too-recent-text); }
-.badge-not-knowable { background: var(--not-knowable-bg); color: var(--not-knowable-text); }
+.badge-supported { background: var(--tone-good); color: #fff; }
+.badge-mostly-supported { background: var(--tone-good-tint); color: var(--tone-good); }
+.badge-mixed { background: var(--tone-warn-tint); color: var(--tone-warn); }
+.badge-contradicted { background: var(--tone-bad); color: #fff; }
+.badge-unknown { background: var(--tone-neutral-tint); color: var(--tone-neutral); }
+.badge-not-assessable { background: var(--tone-neutral-tint); color: var(--tone-neutral); }
+.badge-too-recent { background: var(--tone-warn-tint); color: var(--tone-warn); }
+.badge-not-knowable { background: var(--tone-neutral-tint); color: var(--tone-neutral); }
 
-.badge-tier-primary { background: var(--supported-bg); color: var(--supported-text); }
+.badge-tier-primary { background: var(--tone-good-tint); color: var(--tone-good); }
 .badge-tier-academic { background: var(--causal-bg); color: var(--causal-text); }
-.badge-tier-journalism { background: var(--unknown-bg); color: var(--unknown-text); }
-.badge-tier-factcheck { background: var(--mostly-supported-bg); color: var(--mostly-supported-text); }
-.badge-tier-other { background: var(--not-assessable-bg); color: var(--not-assessable-text); }
+.badge-tier-journalism { background: var(--tone-neutral-tint); color: var(--tone-neutral); }
+.badge-tier-factcheck { background: var(--accent-tint); color: var(--accent); }
+.badge-tier-other { background: var(--tone-neutral-tint); color: var(--tone-neutral); }
 
 .badge-outline {
   background: transparent;
-  border: 1px solid currentColor;
+  border: 2px solid currentColor;
 }
 
 .badge-confidence-low { color: var(--text-muted); }
-.badge-confidence-medium { color: var(--mixed-text); }
-.badge-confidence-high { color: var(--accent); }
+.badge-confidence-medium { color: var(--tone-warn); }
+.badge-confidence-high { color: var(--tone-good); }
 
 .confidence-row {
   display: flex;
@@ -553,6 +566,7 @@ body {
 
 .confidence-label {
   font-size: var(--fs-sm);
+  font-weight: 600;
   color: var(--text-muted);
 }
 
@@ -560,12 +574,13 @@ body {
   margin: 0 0 var(--space-1);
   color: var(--text-muted);
   font-size: var(--fs-sm);
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .not-source-checked {
   margin: 0 0 var(--space-3);
-  color: var(--too-recent-text);
+  color: var(--tone-warn);
+  font-weight: 600;
   font-size: var(--fs-sm);
   line-height: 1.5;
 }
@@ -586,12 +601,12 @@ body {
 }
 
 .framing-signal-label {
-  background: var(--too-recent-bg);
-  color: var(--too-recent-text);
+  background: var(--tone-warn);
+  color: #fff;
   border-radius: 6px;
-  padding: 0.15rem 0.5rem;
+  padding: 0.15rem 0.55rem;
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -600,20 +615,20 @@ body {
 
 .framing-signal-note {
   color: var(--text-muted);
-  line-height: 1.55;
+  line-height: 1.5;
 }
 
-/* Promoted to always-visible — one of the highest-value lines in the card,
-   shouldn't cost a click. A left accent bar (not a full tinted box) keeps
-   it noticeable without competing with the hero's own colored band. */
+/* Always-visible — one of the highest-value lines in the card, shouldn't
+   cost a click. Sits on the card's own tinted wash, so a solid surface
+   panel plus a bold accent bar keeps it legible and distinct. */
 .missing-context {
   margin: 0 0 var(--space-3);
-  padding: 0.6rem 0.85rem;
-  background: var(--bg);
-  border-inline-start: 3px solid var(--accent);
-  border-radius: 6px;
+  padding: 0.65rem 0.9rem;
+  background: var(--surface);
+  border-inline-start: 4px solid var(--accent);
+  border-radius: 8px;
   font-size: var(--fs-sm);
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--text);
 }
 
@@ -645,7 +660,7 @@ body {
 }
 
 .full-analysis-item-label {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -657,12 +672,13 @@ body {
 .full-analysis-item ul {
   margin: 0;
   font-size: var(--fs-base);
-  line-height: 1.65;
+  line-height: 1.6;
   color: var(--text);
 }
 
 .claim-error {
-  color: var(--contradicted-text);
+  color: var(--tone-bad);
+  font-weight: 600;
   font-size: var(--fs-sm);
   margin: 0;
 }
@@ -674,7 +690,7 @@ body {
 
 .considerations li {
   margin-bottom: var(--space-2);
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .result-section {
@@ -688,8 +704,8 @@ body {
 
 .result-section summary {
   cursor: pointer;
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.88rem;
   letter-spacing: 0.01em;
   color: var(--text-muted);
   list-style: none;
@@ -700,11 +716,11 @@ body {
 }
 
 .result-section summary:hover {
-  color: var(--text);
+  color: var(--accent);
 }
 
 .result-section[open] summary {
-  color: var(--text);
+  color: var(--accent);
 }
 
 .result-section summary::-webkit-details-marker {
@@ -726,7 +742,7 @@ body {
   margin-top: 0.65rem;
   color: var(--text);
   font-size: var(--fs-base);
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
 .result-section-body p {
@@ -740,7 +756,7 @@ body {
 }
 
 .related-premises-label {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -756,12 +772,13 @@ body {
 
 .related-premise-chip {
   display: inline-block;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 2px solid var(--border);
   border-radius: 999px;
   padding: 0.3rem 0.75rem;
   font-family: var(--font-ui);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--accent);
   text-decoration: none;
   max-width: 100%;
@@ -773,7 +790,7 @@ body {
 
 .related-premise-chip:hover {
   border-color: var(--accent);
-  background: var(--bg);
+  background: var(--accent-tint);
 }
 
 .claim-highlight {
@@ -781,8 +798,8 @@ body {
 }
 
 @keyframes claim-pulse {
-  0% { box-shadow: 0 0 0 3px rgba(47, 74, 99, 0.35); }
-  100% { box-shadow: 0 0 0 3px rgba(47, 74, 99, 0); }
+  0% { box-shadow: 0 0 0 4px rgba(54, 81, 224, 0.4); }
+  100% { box-shadow: 0 0 0 4px rgba(54, 81, 224, 0); }
 }
 
 /* ---------- Source cards ---------- */
@@ -797,9 +814,9 @@ body {
   display: flex;
   gap: 0.65rem;
   padding: 0.7rem;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 12px;
-  background: var(--bg);
+  background: var(--surface);
   text-decoration: none;
   color: inherit;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -807,7 +824,7 @@ body {
 
 .source-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 4px 12px -8px rgba(30, 27, 20, 0.3);
+  box-shadow: 0 4px 12px -8px rgba(20, 22, 31, 0.3);
 }
 
 .source-favicon {
@@ -828,7 +845,7 @@ body {
 .source-title {
   margin: 0 0 0.3rem;
   font-size: var(--fs-sm);
-  line-height: 1.5;
+  line-height: 1.45;
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -848,118 +865,118 @@ body {
 .source-meta > span:first-child {
   font-size: var(--fs-xs);
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .source-tier-badge {
   padding: 0.15rem 0.5rem;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 /* ---------- Bottom line: the hero ---------- */
-/* Deliberately louder than everything below it — a solid colored band
+/* The loudest thing on the page — a solid, saturated tone-colored band
    (never a tint alone; color is paired with an icon + text label for
-   colorblind-safe reading) over a paper body carrying the actual headline.
-   This is the one card in the whole page meant to dominate. */
+   colorblind-safe reading) over a paper body carrying the actual headline
+   in large serif type. */
 
 /* :not([hidden]) guard — this codebase has hit the [hidden]-vs-display
-   cascade bug three times already this session (see README) for
-   conditionally-shown elements with a class-selector display rule. */
+   cascade bug repeatedly (see README) for conditionally-shown elements
+   with a class-selector display rule. */
 .bottom-line:not([hidden]) {
   display: block;
   overflow: hidden;
   background: var(--surface);
-  border-radius: 20px;
-  box-shadow: 0 2px 4px rgba(30, 27, 20, 0.06), 0 14px 32px -12px rgba(30, 27, 20, 0.28);
-  margin-top: 1.25rem;
+  border-radius: 22px;
+  box-shadow: 0 2px 4px rgba(20, 22, 31, 0.06), 0 16px 36px -14px rgba(20, 22, 31, 0.3);
+  margin-top: var(--space-4);
 }
 
 .bottom-line-band {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.9rem 1.5rem;
+  gap: 0.7rem;
+  padding: 1rem 1.5rem;
 }
 
-/* Solid, not tinted — these reuse the existing badge-text colors, already
-   verified at 6-8:1 contrast against white text. */
-.bottom-line-green .bottom-line-band { background: var(--supported-text); }
-.bottom-line-amber .bottom-line-band { background: var(--mixed-text); }
-.bottom-line-red .bottom-line-band { background: var(--contradicted-text); }
+.bottom-line-green .bottom-line-band { background: var(--tone-good); }
+.bottom-line-amber .bottom-line-band { background: var(--tone-warn); }
+.bottom-line-red .bottom-line-band { background: var(--tone-bad); }
 
 .action-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.24);
   color: #fff;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: bold;
   flex-shrink: 0;
 }
 
 .action-label {
   font-family: var(--font-ui);
-  font-weight: 700;
-  font-size: 1.05rem;
+  font-weight: 800;
+  font-size: 1.15rem;
   color: #fff;
   letter-spacing: 0.01em;
 }
 
 .bottom-line-body {
-  padding: 1.5rem 1.5rem 1.75rem;
+  padding: 1.4rem 1.5rem 1.6rem;
 }
 
 .bottom-line-sentence {
   font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 500;
-  line-height: 1.3;
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: 1.25;
   color: var(--text);
-  margin: 0 0 0.65rem;
+  margin: 0 0 0.6rem;
 }
 
 .bottom-line-rationale {
   font-family: var(--font-ui);
   font-size: var(--fs-base);
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--text-muted);
   margin: 0;
 }
 
 @media (min-width: 520px) {
   .bottom-line-sentence {
-    font-size: 1.85rem;
+    font-size: 2rem;
   }
 }
 
 /* ---------- Verdict strip + dials ---------- */
-/* Deliberately quieter than the hero above — a plain border, no shadow —
-   so the visual contrast between "read this first" and "supporting detail"
-   works in both directions, not just by making the hero bigger. */
+/* The four dials are now solid, bold tone-colored tiles rather than
+   neutral outlined segments — each shows only its own current level
+   (bigger type) plus its justification, not the full range of options,
+   which reads as one clear bold answer instead of a legend to decode. */
 
 .verdict-strip {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
   padding: 1.1rem 1.25rem;
-  margin-top: 1.5rem;
+  margin-top: var(--space-4);
 }
 
 .verdict-headline {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.9rem;
 }
 
 .verdict-label {
   font-size: var(--fs-sm);
+  font-weight: 600;
   color: var(--text-muted);
 }
 
@@ -969,10 +986,6 @@ body {
   color: var(--text-muted);
 }
 
-/* One column on mobile (full-width rows, real legibility over density);
-   a single row of four from 900px up (see media query below). Each dial's
-   current level AND what it means both render unconditionally — no click
-   needed for either, unlike the old per-dial <details>. */
 .dials {
   display: grid;
   grid-template-columns: 1fr;
@@ -980,51 +993,42 @@ body {
 }
 
 .dial {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.9rem 1.05rem;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
+
+.dial-tone-good { background: var(--tone-good); }
+.dial-tone-warn { background: var(--tone-warn); }
+.dial-tone-bad { background: var(--tone-bad); }
+.dial-tone-neutral { background: var(--tone-neutral); }
 
 .dial-name {
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 700;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.82);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0 0 0.55rem;
+  letter-spacing: 0.06em;
+  margin: 0;
 }
 
-.dial-segments {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.65rem;
-}
-
-.dial-segment {
-  font-family: var(--font-ui);
-  font-size: 0.82rem;
-  font-weight: 500;
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.dial-segment.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+.dial-level {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
   font-weight: 600;
+  color: #fff;
+  margin: 0;
+  line-height: 1.2;
 }
 
 .dial-justification {
   margin: 0;
-  font-size: 0.88rem;
-  line-height: 1.6;
-  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 /* ---------- Dashboard layout ---------- */
@@ -1036,8 +1040,8 @@ body {
 .claims-column {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  margin-top: var(--space-5);
+  gap: var(--space-4);
+  margin-top: var(--space-4);
 }
 
 .evidence-rail {
@@ -1045,14 +1049,14 @@ body {
 }
 
 .rail-group {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .rail-group-heading {
   font-family: var(--font-display);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-style: italic;
-  line-height: 1.5;
+  line-height: 1.45;
   color: var(--text-muted);
   margin: 0 0 0.5rem;
 }
@@ -1061,12 +1065,12 @@ body {
   text-align: center;
   color: var(--text-muted);
   font-size: var(--fs-xs);
-  margin-top: var(--space-6);
+  margin-top: var(--space-5);
 }
 
 @media (min-width: 520px) {
   .page {
-    padding-top: var(--space-8);
+    padding-top: var(--space-6);
   }
 
   .page-header h1 {
@@ -1075,18 +1079,12 @@ body {
 }
 
 @media (min-width: 900px) {
-  /* Deliberately simple: only the hero has to be guaranteed visible without
-     scrolling (verified separately — see the layout audit), so .page is a
-     normal-flow block, not a height:100vh shell. Two earlier passes built a
-     fixed-height flex shell with independently-scrolling inner regions to
-     keep the dials visible too, and it broke three separate times from
-     small unrelated changes (see README history) — once that requirement
-     was explicitly relaxed, the honest fix was removing the fragile
-     mechanism, not patching it again. Supporting detail (dials, claim
-     breakdown, evidence) now simply flows in normal page scroll below the
-     hero, in a two-column grid (breakdown / evidence). */
+  /* Deliberately simple normal-flow layout — see the file header comment
+     for why this project doesn't force a fixed-viewport shell. Compact
+     spacing plus the removed examples/chips are what earns "fits on one
+     screen" for a typical 1-2 claim result, not a scroll-trapping shell. */
   .page {
-    max-width: 1100px;
+    max-width: 1120px;
   }
 
   .dials {
@@ -1096,7 +1094,7 @@ body {
   .dashboard-grid {
     display: grid;
     grid-template-columns: 1fr 320px;
-    gap: var(--space-5);
+    gap: var(--space-4);
     align-items: start;
   }
 
@@ -1111,10 +1109,10 @@ body {
   .evidence-rail:not([hidden]) {
     display: block;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    border: 2px solid var(--border);
+    border-radius: 18px;
     padding: 1.1rem;
-    margin-top: var(--space-5);
+    margin-top: var(--space-4);
   }
 }
 

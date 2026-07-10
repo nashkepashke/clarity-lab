@@ -32,6 +32,31 @@ var VERDICT_ACTION_MAP = {
 };
 var ACTION_ICON = { green: "✓", amber: "⚠", red: "✕" };
 
+// Maps each dial's own level values to a good/warn/bad/neutral tone — the
+// same tone vocabulary used for claim-card coloring below. Deliberately
+// per-dial rather than a single shared map: e.g. "values-or-prediction"
+// (checkability) and "not-applicable" (evidenceStrength) are neutral, not
+// bad, since they describe a claim TYPE rather than a shortfall.
+var DIAL_TONE = {
+  checkability: { "settled-by-evidence": "good", partially: "warn", "values-or-prediction": "neutral" },
+  evidenceStrength: { strong: "good", "mixed-or-thin": "warn", "none-found": "bad", "not-applicable": "neutral" },
+  precision: { "specific-and-falsifiable": "good", "somewhat-vague": "warn", unfalsifiable: "bad" },
+  analysisConfidence: { high: "good", medium: "warn", low: "bad" }
+};
+
+// Same tone vocabulary, applied to each claim card's left bar + tinted
+// background — the bold "at a glance" verdict color for that one claim.
+var ASSESSMENT_TONE = {
+  Supported: "good",
+  "Mostly supported": "good",
+  "Mixed or context-dependent": "warn",
+  Contradicted: "bad",
+  "Not enough information": "neutral",
+  "Not empirically assessable": "neutral",
+  "Too recent to assess": "warn",
+  "Outcome not yet knowable": "neutral"
+};
+
 var langToggle = document.getElementById("lang-toggle");
 var langButtons = langToggle.querySelectorAll(".lang-btn");
 var titleEl = document.getElementById("page-title");
@@ -42,7 +67,6 @@ var analyzeBtn = document.getElementById("analyze-btn");
 var dashboardArea = document.getElementById("dashboard-area");
 var dashboardGrid = document.querySelector(".dashboard-grid");
 var errorArea = document.getElementById("error-area");
-var chipsContainer = document.getElementById("chips");
 var disclaimerEl = document.getElementById("disclaimer");
 var bottomLineEl = document.getElementById("bottom-line");
 var actionIconEl = document.getElementById("action-icon");
@@ -106,7 +130,6 @@ function applyLanguage(lang) {
   historyPrivacyNoteEl.textContent = T.history.privacyNote;
   historyClearBtn.textContent = T.history.clear;
 
-  renderChips();
   updateToggleButtons();
   renderHistoryList();
 
@@ -121,20 +144,10 @@ function applyLanguage(lang) {
   evidenceRail.innerHTML = "";
   errorArea.hidden = true;
   if (imageExtracted) extractPromptEl.hidden = true;
+  subtitleEl.hidden = false;
+  inputCard.classList.remove("input-card-collapsed");
 
   localStorage.setItem(LANG_STORAGE_KEY, lang);
-}
-
-function renderChips() {
-  chipsContainer.innerHTML = "";
-  T.chips.forEach(function (chip) {
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "chip";
-    btn.dataset.claim = chip.claim;
-    btn.textContent = chip.claim;
-    chipsContainer.appendChild(btn);
-  });
 }
 
 function updateToggleButtons() {
@@ -149,17 +162,6 @@ langToggle.addEventListener("click", function (event) {
   var btn = event.target.closest(".lang-btn");
   if (!btn || btn.dataset.lang === currentLang) return;
   applyLanguage(btn.dataset.lang);
-});
-
-chipsContainer.addEventListener("click", function (event) {
-  var chip = event.target.closest(".chip");
-  if (!chip) return;
-  claimInput.value = chip.dataset.claim;
-  claimInput.focus();
-  // Picking an example is a clear "analyze this text" signal — an image
-  // still waiting to be read would otherwise silently win on the next
-  // click and overwrite what they just chose.
-  if (attachedImage && !imageExtracted) clearAttachedImage();
 });
 
 analyzeBtn.addEventListener("click", function () {
@@ -288,6 +290,8 @@ function renderDashboard(data, lang) {
   // the difference between the verdict strip fitting above the fold or not.
   claimInput.rows = 2;
   imageHintEl.hidden = true;
+  subtitleEl.hidden = true;
+  inputCard.classList.add("input-card-collapsed");
 }
 
 // Gated on verdict presence — null/absent (a failed synthesis call, or a
@@ -334,29 +338,24 @@ function renderVerdictStrip(data) {
   });
 }
 
-// A plain block, not a <details> — the current level and what it means
-// should both read at a glance, not require a click to reveal the
-// justification. Reducing click-through for this is the whole point of
-// this pass.
+// A bold solid-color tile (tone from DIAL_TONE) showing just this dial's
+// current level + its one-line justification — no click needed for either,
+// and no need to show the other unselected levels as a legend.
 function renderDial(key, dialData) {
   var dialT = T.epistemicProfile[key];
+  var tone = (DIAL_TONE[key] && DIAL_TONE[key][dialData.level]) || "neutral";
   var wrap = document.createElement("div");
-  wrap.className = "dial";
+  wrap.className = "dial dial-tone-" + tone;
 
   var nameEl = document.createElement("p");
   nameEl.className = "dial-name";
   nameEl.textContent = dialT.name;
   wrap.appendChild(nameEl);
 
-  var segments = document.createElement("div");
-  segments.className = "dial-segments";
-  Object.keys(dialT.levels).forEach(function (levelKey) {
-    var seg = document.createElement("span");
-    seg.className = "dial-segment" + (levelKey === dialData.level ? " active" : "");
-    seg.textContent = dialT.levels[levelKey];
-    segments.appendChild(seg);
-  });
-  wrap.appendChild(segments);
+  var levelEl = document.createElement("p");
+  levelEl.className = "dial-level";
+  levelEl.textContent = dialT.levels[dialData.level] || "";
+  wrap.appendChild(levelEl);
 
   var justification = document.createElement("p");
   justification.className = "dial-justification";
@@ -376,7 +375,8 @@ function renderClaimsColumn(claims) {
 
 function renderClaimCard(claim, allClaims) {
   var card = document.createElement("article");
-  card.className = "claim-card result-card";
+  var tone = claim.error ? "bad" : (ASSESSMENT_TONE[claim.assessment] || "neutral");
+  card.className = "claim-card result-card claim-card-tone-" + tone;
   card.id = "claim-" + claim.id;
 
   var claimEl = document.createElement("p");

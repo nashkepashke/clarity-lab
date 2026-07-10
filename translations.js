@@ -21,14 +21,9 @@ var TRANSLATIONS = {
     htmlLang: "he",
     dateLocale: "he-IL",
     header: {
-      title: "פירוק טענות",
-      subtitle: "הדביקו טענה, הבטחה או פסקה שלמה — נפרק אותה לגורמים ונבדוק כל חלק."
+      title: "מעבדת הבהירות",
+      subtitle: "הדביקו טענה — או צילום מסך — ותראו מיד מה מחזיק מים."
     },
-    chips: [
-      { claim: "יש להעלות את שכר המינימום במשק." },
-      { claim: "בתוך עשור, רוב הישראלים יעבדו מהבית לפחות יומיים בשבוע." },
-      { claim: "הרפורמה החדשה בתחבורה הציבורית תפתור את בעיית הפקקים בערים הגדולות." }
-    ],
     input: {
       label: "הטענה שלך",
       placeholder: "הדביקו או הקלידו טענה, הבטחה, או פסקה שלמה...",
@@ -272,14 +267,9 @@ var TRANSLATIONS = {
     htmlLang: "en",
     dateLocale: "en-US",
     header: {
-      title: "Claim Breakdown",
-      subtitle: "Paste a claim, a promise, or a whole paragraph — we'll break it down and check each part."
+      title: "Clarity Lab",
+      subtitle: "Paste a claim — or a screenshot — and see what actually holds up."
     },
-    chips: [
-      { claim: "Coffee is bad for your health." },
-      { claim: "Remote work will become the default for most office jobs by 2030." },
-      { claim: "This new law is the right way to fix the housing crisis." }
-    ],
     input: {
       label: "Your claim",
       placeholder: "Paste or type a claim, a promise, or a whole paragraph...",
