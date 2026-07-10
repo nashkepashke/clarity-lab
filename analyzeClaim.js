@@ -36,7 +36,13 @@ function postJSON(url, body) {
         .then(function (parsedBody) {
           if (res.ok) return parsedBody;
           var err = new Error((parsedBody && parsedBody.message) || "Request failed");
-          err.code = (parsedBody && parsedBody.error) || "generic";
+          // A raw 504 with no parseable JSON body means Vercel's own
+          // infrastructure killed the function before it could send one of
+          // our own error responses — genuinely different from any error
+          // code our own handlers produce, and worth a distinct, honest
+          // message ("this took too long") rather than falling into the
+          // generic bucket.
+          err.code = (parsedBody && parsedBody.error) || (res.status === 504 ? "gateway_timeout" : "generic");
           throw err;
         });
     })
