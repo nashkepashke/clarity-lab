@@ -2,11 +2,14 @@
   "use strict";
 
   const KEY = "netvibes-ai-dashboard-v1";
+  const COLUMN_COUNT = 3;
   const $ = (id) => document.getElementById(id);
+
   let state = loadState();
   let draggedId = null;
   let confirmAction = null;
   let toastTimer = null;
+  let readerContext = null;
 
   const E = {
     grid: $("dashboardGrid"), archive: $("archiveGrid"), archiveCount: $("archiveCount"),
@@ -21,7 +24,8 @@
     confirmTitle: $("confirmTitle"), confirmText: $("confirmText"), toast: $("toast")
   };
 
-  repairTransientState();
+  repairState();
+  installLayoutStyles();
   $("todayLabel").textContent = new Intl.DateTimeFormat(undefined, {
     weekday: "long", month: "long", day: "numeric"
   }).format(new Date());
@@ -29,15 +33,43 @@
   saveState();
   render();
 
+  function installLayoutStyles() {
+    if (document.getElementById("dashboardLayoutStyles")) return;
+    const style = document.createElement("style");
+    style.id = "dashboardLayoutStyles";
+    style.textContent = `
+      .dashboard-column { min-width: 0; min-height: 140px; display: flex; flex-direction: column; gap: 16px; border-radius: 14px; }
+      .dashboard-column.drop-active { background: rgba(37, 99, 235, .05); box-shadow: inset 0 0 0 2px rgba(37, 99, 235, .18); }
+      .dashboard-column:empty::after { content: "Drop a box here"; min-height: 110px; display: grid; place-items: center; border: 2px dashed #cbd5e1; border-radius: 14px; color: #94a3b8; font-size: 12px; }
+      .widget-header { cursor: default; }
+      .widget-drag-zone { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; cursor: grab; }
+      .widget-drag-zone:active { cursor: grabbing; }
+      .widget.drop-before { box-shadow: 0 -3px 0 var(--primary), 0 3px 13px rgba(22, 32, 51, .05); }
+      .reader-footer { justify-content: space-between; }
+      .reader-nav { display: flex; gap: 8px; }
+      .reader-nav .button:disabled { cursor: default; }
+      @media (max-width: 760px) {
+        .dashboard-column { min-height: 0; }
+        .dashboard-column:empty { display: none; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function defaults() {
-    return { widgets: [
+    const widgets = [
       widget("welcome", "Welcome"),
       widget("rss", "xkcd", { url: "https://xkcd.com/rss.xml", maxItems: 7 }),
       widget("rss", "BBC World", { url: "https://feeds.bbci.co.uk/news/world/rss.xml", maxItems: 8 }),
       widget("ai", "Daily brief", { interests: "Important and surprising items with minimal repetition" }),
       widget("calendar", "Calendar"),
       widget("notes", "Notes", {}, { text: "" })
-    ]};
+    ];
+    widgets.forEach((w, i) => {
+      w.column = i % COLUMN_COUNT;
+      w.order = Math.floor(i / COLUMN_COUNT);
+    });
+    return { widgets };
   }
 
   function widget(type, title, config = {}, data = {}) {
@@ -45,7 +77,7 @@
     if (type === "calendar") data = { events: [], ...data };
     if (type === "ai") data = { summary: null, loading: false, error: null, ...data };
     if (type === "notes") data = { text: "", ...data };
-    return { id: uid(), type, title, config, data, collapsed: false, archived: false };
+    return { id: uid(), type, title, config, data, collapsed: false, archived: false, column: 0, order: 0 };
   }
 
   function loadState() {
@@ -57,9 +89,13 @@
     }
   }
 
-  function repairTransientState() {
+  function repairState() {
+    let activeIndex = 0;
     state.widgets.forEach((w) => {
       w.data = w.data || {};
+      w.config = w.config || {};
+      w.collapsed = Boolean(w.collapsed);
+      w.archived = Boolean(w.archived);
       w.data.loading = false;
       if (w.type === "notes" && w.data.text === "Things to remember…") w.data.text = "";
       if (w.type === "rss") {
@@ -67,7 +103,13 @@
         w.data.error = null;
       }
       if (w.type === "calendar") w.data.events = Array.isArray(w.data.events) ? w.data.events : [];
+      if (!w.archived) {
+        if (!Number.isInteger(w.column) || w.column < 0 || w.column >= COLUMN_COUNT) w.column = activeIndex % COLUMN_COUNT;
+        if (!Number.isFinite(w.order)) w.order = Math.floor(activeIndex / COLUMN_COUNT);
+        activeIndex += 1;
+      }
     });
+    normalizeOrders();
   }
 
   function saveState() {
@@ -94,18 +136,49 @@
     $("confirmAction").onclick = () => { if (confirmAction) confirmAction(); closeModals(); };
     E.backdrop.onclick = closeModals;
     document.querySelectorAll("[data-close-modal]").forEach((b) => b.onclick = closeModals);
-    document.onkeydown = (e) => { if (e.key === "Escape") closeModals(); };
     document.querySelectorAll(".nav-item").forEach((b) => b.onclick = () => switchView(b.dataset.view));
     document.querySelectorAll(".type-card").forEach((b) => b.onclick = () => selectType(b.dataset.widgetType));
     E.form.onsubmit = addFromForm;
     E.eventForm.onsubmit = addEvent;
+    document.addEventListener("keydown", handleKeydown);
+  }
+
+  function handleKeydown(e) {
+    if (e.key === "Escape") {
+      closeModals();
+      return;
+    }
+    if (!readerContext || E.reader.classList.contains("hidden")) return;
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      stepReader(1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      stepReader(-1);
+    }
   }
 
   function render() {
     const active = state.widgets.filter((w) => !w.archived);
     E.grid.innerHTML = "";
     E.empty.classList.toggle("hidden", active.length > 0);
-    active.forEach((w) => E.grid.appendChild(renderWidget(w)));
+
+    const columns = Array.from({ length: COLUMN_COUNT }, (_, columnIndex) => {
+      const col = document.createElement("section");
+      col.className = "dashboard-column";
+      col.dataset.column = String(columnIndex);
+      col.ondragover = (e) => handleColumnDragOver(e, col);
+      col.ondrop = (e) => handleColumnDrop(e, col);
+      E.grid.appendChild(col);
+      return col;
+    });
+
+    active
+      .slice()
+      .sort((a, b) => a.column - b.column || a.order - b.order)
+      .forEach((w) => columns[w.column].appendChild(renderWidget(w)));
+
     renderArchive();
     saveState();
   }
@@ -114,37 +187,110 @@
     const el = document.createElement("article");
     el.className = `widget${w.collapsed ? " collapsed" : ""}`;
     el.dataset.widgetId = w.id;
-    el.innerHTML = `<header class="widget-header" draggable="true">
-      <span class="drag-handle" title="Drag box">⠿</span><span class="widget-icon">${icon(w.type)}</span>
-      <div class="widget-heading"><h3>${esc(w.title)}</h3><p>${esc(subtitle(w))}</p></div>
-      <div class="widget-actions">${w.type === "rss" ? '<button class="icon-button refresh-widget" title="Refresh feed" aria-label="Refresh feed">↻</button>' : ""}
-      <button class="icon-button collapse-widget" title="${w.collapsed ? "Restore box" : "Minimize box"}" aria-label="${w.collapsed ? "Restore box" : "Minimize box"}">${w.collapsed ? "□" : "−"}</button>
-      <button class="icon-button archive-widget" title="Close box (move to Archive)" aria-label="Close box">×</button></div></header><div class="widget-body"></div>`;
+    el.innerHTML = `<header class="widget-header">
+      <div class="widget-drag-zone" draggable="true" title="Drag box">
+        <span class="drag-handle" aria-hidden="true">⠿</span><span class="widget-icon">${icon(w.type)}</span>
+        <div class="widget-heading"><h3>${esc(w.title)}</h3><p>${esc(subtitle(w))}</p></div>
+      </div>
+      <div class="widget-actions">${w.type === "rss" ? '<button draggable="false" class="icon-button refresh-widget" title="Refresh feed" aria-label="Refresh feed">↻</button>' : ""}
+        <button draggable="false" class="icon-button collapse-widget" title="${w.collapsed ? "Restore box" : "Minimize box"}" aria-label="${w.collapsed ? "Restore box" : "Minimize box"}">${w.collapsed ? "□" : "−"}</button>
+        <button draggable="false" class="icon-button archive-widget" title="Close box (move to Archive)" aria-label="Close box">×</button>
+      </div>
+    </header><div class="widget-body"></div>`;
 
-    const header = el.querySelector(".widget-header");
-    header.ondragstart = (e) => {
-      if (e.target.closest("button")) return e.preventDefault();
+    const dragZone = el.querySelector(".widget-drag-zone");
+    dragZone.ondragstart = (e) => {
       draggedId = w.id;
       el.classList.add("dragging");
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", w.id);
     };
-    header.ondragend = () => { draggedId = null; el.classList.remove("dragging"); clearDrag(); };
-    el.ondragover = (e) => { if (!draggedId || draggedId === w.id) return; e.preventDefault(); el.classList.add("drag-over"); };
-    el.ondragleave = () => el.classList.remove("drag-over");
-    el.ondrop = (e) => { e.preventDefault(); clearDrag(); if (draggedId && draggedId !== w.id) reorder(draggedId, w.id); };
+    dragZone.ondragend = () => clearDragState();
 
-    el.querySelector(".collapse-widget").onclick = (e) => { e.stopPropagation(); w.collapsed = !w.collapsed; render(); };
-    el.querySelector(".archive-widget").onclick = (e) => { e.stopPropagation(); w.archived = true; render(); toast("Box moved to Archive."); };
+    el.querySelector(".collapse-widget").onclick = () => {
+      w.collapsed = !w.collapsed;
+      saveState();
+      render();
+    };
+    el.querySelector(".archive-widget").onclick = () => {
+      w.archived = true;
+      normalizeOrders();
+      saveState();
+      render();
+      toast("Box moved to Archive.");
+    };
     const refresh = el.querySelector(".refresh-widget");
-    if (refresh) refresh.onclick = (e) => { e.stopPropagation(); refreshFeed(w.id, true); };
+    if (refresh) refresh.onclick = () => refreshFeed(w.id, true);
+
     renderBody(w, el.querySelector(".widget-body"));
     return el;
   }
 
+  function handleColumnDragOver(e, column) {
+    if (!draggedId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    document.querySelectorAll(".dashboard-column").forEach((c) => c.classList.toggle("drop-active", c === column));
+    const before = elementAfterY(column, e.clientY);
+    column.querySelectorAll(".widget").forEach((card) => card.classList.remove("drop-before"));
+    if (before) before.classList.add("drop-before");
+  }
+
+  function handleColumnDrop(e, column) {
+    if (!draggedId) return;
+    e.preventDefault();
+    const columnIndex = Number(column.dataset.column);
+    const before = elementAfterY(column, e.clientY);
+    moveWidget(draggedId, columnIndex, before?.dataset.widgetId || null);
+    clearDragState();
+    render();
+  }
+
+  function elementAfterY(column, y) {
+    const cards = [...column.querySelectorAll(":scope > .widget:not(.dragging)")];
+    return cards.find((card) => {
+      const box = card.getBoundingClientRect();
+      return y < box.top + box.height / 2;
+    }) || null;
+  }
+
+  function moveWidget(id, targetColumn, beforeId) {
+    const moved = find(id);
+    if (!moved) return;
+
+    const byColumn = Array.from({ length: COLUMN_COUNT }, (_, c) => state.widgets
+      .filter((w) => !w.archived && w.id !== id && w.column === c)
+      .sort((a, b) => a.order - b.order));
+
+    moved.column = targetColumn;
+    const target = byColumn[targetColumn];
+    let index = beforeId ? target.findIndex((w) => w.id === beforeId) : -1;
+    if (index < 0) index = target.length;
+    target.splice(index, 0, moved);
+
+    byColumn.forEach((items, c) => items.forEach((w, i) => { w.column = c; w.order = i; }));
+    saveState();
+  }
+
+  function clearDragState() {
+    draggedId = null;
+    document.querySelectorAll(".widget.dragging").forEach((el) => el.classList.remove("dragging"));
+    document.querySelectorAll(".dashboard-column.drop-active").forEach((el) => el.classList.remove("drop-active"));
+    document.querySelectorAll(".widget.drop-before").forEach((el) => el.classList.remove("drop-before"));
+  }
+
+  function normalizeOrders() {
+    for (let c = 0; c < COLUMN_COUNT; c += 1) {
+      state.widgets
+        .filter((w) => !w.archived && w.column === c)
+        .sort((a, b) => a.order - b.order)
+        .forEach((w, i) => { w.order = i; });
+    }
+  }
+
   function renderBody(w, body) {
     if (w.type === "welcome") {
-      body.innerHTML = `<div class="welcome-box"><h4>A modular personal home page</h4><p>Add RSS feeds and other boxes. Drag boxes only from their top bar.</p><button class="button primary small">＋ Add a box</button></div>`;
+      body.innerHTML = `<div class="welcome-box"><h4>A modular personal home page</h4><p>Drag boxes from the top bar, minimize them, and arrange them freely across columns.</p><button class="button primary small">＋ Add a box</button></div>`;
       body.querySelector("button").onclick = openAdd;
     } else if (w.type === "rss") renderRss(w, body);
     else if (w.type === "calendar") renderCalendar(w, body);
@@ -160,8 +306,7 @@
 
   function renderRss(w, body) {
     if (w.data.loading) {
-      body.innerHTML = `<div class="widget-status">Refreshing feed…<div><button class="text-button cancel-refresh">Cancel</button></div></div>`;
-      body.querySelector(".cancel-refresh").onclick = () => { w.data.loading = false; render(); };
+      body.innerHTML = '<div class="widget-status">Refreshing feed…</div>';
       return;
     }
     if (w.data.error) {
@@ -170,13 +315,13 @@
       return;
     }
     if (!w.data.items.length) {
-      body.innerHTML = `<div class="widget-status">No items loaded yet.<div><button class="text-button">Refresh feed</button></div></div>`;
+      body.innerHTML = '<div class="widget-status">No items loaded yet.<div><button class="text-button">Refresh feed</button></div></div>';
       body.querySelector("button").onclick = () => refreshFeed(w.id, true);
       return;
     }
     const max = Number(w.config.maxItems || 8);
     body.innerHTML = `<ul class="feed-list">${w.data.items.slice(0, max).map((item, i) => `<li class="feed-item"><button class="feed-button" data-i="${i}"><span><span class="feed-title">${esc(item.title || "Untitled")}</span><span class="feed-meta">${esc(item.author || "")}${item.publishedAt ? ` · ${esc(relative(item.publishedAt))}` : ""}</span></span>${item.imageUrl ? `<img class="feed-thumb" src="${attr(item.imageUrl)}" alt="" loading="lazy">` : ""}</button></li>`).join("")}</ul><div class="feed-footer"><span>${w.data.lastUpdated ? `Updated ${esc(relative(w.data.lastUpdated))}` : ""}</span><button class="text-button">Refresh</button></div>`;
-    body.querySelectorAll(".feed-button").forEach((b) => b.onclick = () => openItem(w, w.data.items[Number(b.dataset.i)]));
+    body.querySelectorAll(".feed-button").forEach((b) => b.onclick = () => openItem(w, Number(b.dataset.i)));
     body.querySelector(".feed-footer button").onclick = () => refreshFeed(w.id, true);
   }
 
@@ -195,8 +340,20 @@
   function renderArchive() {
     const items = state.widgets.filter((w) => w.archived);
     E.archive.innerHTML = items.length ? items.map((w) => `<div class="archive-card"><div><h3>${esc(w.title)}</h3><p>${esc(typeName(w.type))}</p></div><div class="archive-actions"><button class="button ghost small" data-restore="${attr(w.id)}">Restore</button><button class="button danger small" data-delete="${attr(w.id)}">Delete</button></div></div>`).join("") : '<div class="widget-status">No archived boxes.</div>';
-    E.archive.querySelectorAll("[data-restore]").forEach((b) => b.onclick = () => { find(b.dataset.restore).archived = false; render(); });
+    E.archive.querySelectorAll("[data-restore]").forEach((b) => b.onclick = () => {
+      const w = find(b.dataset.restore);
+      w.archived = false;
+      placeAtShortestColumn(w);
+      render();
+    });
     E.archive.querySelectorAll("[data-delete]").forEach((b) => b.onclick = () => ask("Delete permanently?", "This box and its saved contents will be removed.", () => { state.widgets = state.widgets.filter((w) => w.id !== b.dataset.delete); render(); }));
+  }
+
+  function placeAtShortestColumn(w) {
+    const counts = Array.from({ length: COLUMN_COUNT }, (_, c) => state.widgets.filter((x) => !x.archived && x.id !== w.id && x.column === c).length);
+    const column = counts.indexOf(Math.min(...counts));
+    w.column = column;
+    w.order = counts[column];
   }
 
   async function refreshFeed(id, notify = false) {
@@ -254,19 +411,56 @@
 
   function generateFirstSummary() {
     let w = state.widgets.find((x) => !x.archived && x.type === "ai");
-    if (!w) { w = widget("ai", "Daily brief", { interests: "Important and surprising items" }); state.widgets.push(w); render(); }
+    if (!w) {
+      w = widget("ai", "Daily brief", { interests: "Important and surprising items" });
+      placeAtShortestColumn(w);
+      state.widgets.push(w);
+      render();
+    }
     generateSummary(w.id);
   }
 
-  function openItem(w, item) {
-    E.source.textContent = w.title;
-    E.readerTitle.textContent = item.title || "Untitled";
+  function openItem(w, index) {
+    readerContext = { widgetId: w.id, index };
+    renderReader();
+    openModal(E.reader, true);
+  }
+
+  function renderReader() {
+    if (!readerContext) return;
+    const w = find(readerContext.widgetId);
+    if (!w || w.type !== "rss" || !w.data.items.length) return closeModals();
+    readerContext.index = Math.max(0, Math.min(readerContext.index, w.data.items.length - 1));
+    const item = w.data.items[readerContext.index];
     const url = item.url || item.canonicalUrl || "";
     const yt = youtubeId(url);
-    E.readerBody.innerHTML = yt ? `<iframe src="https://www.youtube-nocookie.com/embed/${attr(yt)}" allowfullscreen title="Video"></iframe>` : sanitize(item.contentHtml || item.excerpt || "No preview is available for this item.");
+
+    E.source.textContent = `${w.title} · ${readerContext.index + 1}/${w.data.items.length}`;
+    E.readerTitle.textContent = item.title || "Untitled";
+    E.readerBody.innerHTML = yt
+      ? `<iframe src="https://www.youtube-nocookie.com/embed/${attr(yt)}" allowfullscreen title="Video"></iframe>`
+      : sanitize(item.contentHtml || item.excerpt || "No preview is available for this item.");
     if (item.imageUrl && !E.readerBody.querySelector("img")) E.readerBody.insertAdjacentHTML("afterbegin", `<p><img src="${attr(item.imageUrl)}" alt=""></p>`);
-    E.readerFooter.innerHTML = url ? `<a class="button primary" href="${attr(url)}" target="_blank" rel="noopener noreferrer">Open original</a>` : "";
-    openModal(E.reader);
+
+    const previousDisabled = readerContext.index === 0 ? "disabled" : "";
+    const nextDisabled = readerContext.index >= w.data.items.length - 1 ? "disabled" : "";
+    E.readerFooter.innerHTML = `<div class="reader-nav">
+      <button class="button ghost reader-prev" ${previousDisabled} title="Previous item (←)">← Previous</button>
+      <button class="button ghost reader-next" ${nextDisabled} title="Next item (→)">Next →</button>
+    </div>${url ? `<a class="button primary" href="${attr(url)}" target="_blank" rel="noopener noreferrer">Open original</a>` : ""}`;
+    E.readerFooter.querySelector(".reader-prev").onclick = () => stepReader(-1);
+    E.readerFooter.querySelector(".reader-next").onclick = () => stepReader(1);
+  }
+
+  function stepReader(delta) {
+    if (!readerContext) return;
+    const w = find(readerContext.widgetId);
+    if (!w) return;
+    const next = readerContext.index + delta;
+    if (next < 0 || next >= w.data.items.length) return;
+    readerContext.index = next;
+    renderReader();
+    E.reader.scrollTop = 0;
   }
 
   function openAdd() { showTypes(); openModal(E.add); }
@@ -289,8 +483,9 @@
     if (type === "ai") config = { interests: $("aiInterests").value.trim() };
     if (type === "xsearch") config = { query: $("xQuery").value.trim() };
     const w = widget(type, E.title.value.trim(), config);
-    state.widgets.push(w); render(); closeModals(); toast("Box added.");
-    if (type === "rss") refreshFeed(w.id, true);
+    placeAtShortestColumn(w);
+    state.widgets.push(w);
+    render(); closeModals(); toast("Box added.");
   }
 
   function openEvent(id) { E.eventForm.reset(); E.eventWidgetId.value = id; E.eventDate.value = localDate(new Date()); openModal(E.event); E.eventTitle.focus(); }
@@ -300,22 +495,42 @@
     render(); closeModals(); toast("Calendar item added.");
   }
 
-  function reorder(fromId, toId) {
-    const a = state.widgets.findIndex((w) => w.id === fromId), b = state.widgets.findIndex((w) => w.id === toId);
-    if (a < 0 || b < 0) return;
-    const [moved] = state.widgets.splice(a, 1);
-    const target = state.widgets.findIndex((w) => w.id === toId);
-    state.widgets.splice(target, 0, moved);
-    draggedId = null; render();
+  function switchView(view) {
+    document.querySelectorAll(".nav-item").forEach((x) => x.classList.toggle("active", x.dataset.view === view));
+    E.dashboardView.classList.toggle("hidden", view !== "dashboard");
+    E.archiveView.classList.toggle("hidden", view !== "archive");
+    E.sidebar.classList.remove("open");
   }
-  function clearDrag() { document.querySelectorAll(".drag-over").forEach((x) => x.classList.remove("drag-over")); }
-  function switchView(view) { document.querySelectorAll(".nav-item").forEach((x) => x.classList.toggle("active", x.dataset.view === view)); E.dashboardView.classList.toggle("hidden", view !== "dashboard"); E.archiveView.classList.toggle("hidden", view !== "archive"); E.sidebar.classList.remove("open"); }
   function ask(title, text, action) { confirmAction = action; E.confirmTitle.textContent = title; E.confirmText.textContent = text; openModal(E.confirm); }
-  function openModal(m) { closeModals(); E.backdrop.classList.remove("hidden"); m.classList.remove("hidden"); document.body.style.overflow = "hidden"; }
-  function closeModals() { [E.add,E.reader,E.event,E.confirm].forEach((x) => x.classList.add("hidden")); E.backdrop.classList.add("hidden"); document.body.style.overflow = ""; confirmAction = null; }
+  function openModal(m, preserveReader = false) {
+    closeModals(preserveReader);
+    E.backdrop.classList.remove("hidden");
+    m.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+  function closeModals(preserveReader = false) {
+    [E.add,E.reader,E.event,E.confirm].forEach((x) => x.classList.add("hidden"));
+    E.backdrop.classList.add("hidden");
+    document.body.style.overflow = "";
+    confirmAction = null;
+    if (!preserveReader) readerContext = null;
+  }
 
-  function exportBackup() { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"})); a.download = `ai-dashboard-${localDate(new Date())}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 0); }
-  async function importBackup(e) { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; try { const x = JSON.parse(await f.text()); if (!Array.isArray(x.widgets)) throw new Error(); state = x; repairTransientState(); render(); toast("Backup imported."); } catch (_) { toast("That file is not a valid dashboard backup."); } }
+  function exportBackup() {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));
+    a.download = `ai-dashboard-${localDate(new Date())}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 0);
+  }
+  async function importBackup(e) {
+    const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+    try {
+      const x = JSON.parse(await f.text());
+      if (!Array.isArray(x.widgets)) throw new Error();
+      state = x; repairState(); render(); toast("Backup imported.");
+    } catch (_) { toast("That file is not a valid dashboard backup."); }
+  }
 
   async function fetchTimeout(url, options, ms) {
     const controller = new AbortController();
@@ -336,7 +551,16 @@
   function esc(v) { return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
   function attr(v) { return esc(v).replaceAll("`","&#096;"); }
   function youtubeId(url) { try { const u=new URL(url); if(u.hostname.includes("youtu.be"))return u.pathname.slice(1).split("/")[0]; if(u.hostname.includes("youtube.com"))return u.searchParams.get("v"); } catch (_){} return null; }
-  function sanitize(html) { const d=new DOMParser().parseFromString(String(html||""),"text/html"), tags=new Set("A P BR DIV SPAN STRONG B EM I UL OL LI BLOCKQUOTE PRE CODE H1 H2 H3 H4 IMG FIGURE FIGCAPTION HR TABLE THEAD TBODY TR TH TD".split(" ")); [...d.body.querySelectorAll("*")].forEach((n)=>{ if(!tags.has(n.tagName)){n.replaceWith(...n.childNodes);return;} [...n.attributes].forEach((a)=>{const ok=(n.tagName==="A"&&["href","title"].includes(a.name))||(n.tagName==="IMG"&&["src","alt","title","width","height"].includes(a.name)); if(!ok)n.removeAttribute(a.name);}); if(n.tagName==="A"){const h=n.getAttribute("href")||""; if(!/^https?:\/\//i.test(h))n.removeAttribute("href"); else {n.target="_blank";n.rel="noopener noreferrer";}} if(n.tagName==="IMG"&&!/^https?:\/\//i.test(n.getAttribute("src")||""))n.remove(); }); return d.body.innerHTML; }
+  function sanitize(html) {
+    const d=new DOMParser().parseFromString(String(html||""),"text/html"), tags=new Set("A P BR DIV SPAN STRONG B EM I UL OL LI BLOCKQUOTE PRE CODE H1 H2 H3 H4 IMG FIGURE FIGCAPTION HR TABLE THEAD TBODY TR TH TD".split(" "));
+    [...d.body.querySelectorAll("*")].forEach((n)=>{
+      if(!tags.has(n.tagName)){n.replaceWith(...n.childNodes);return;}
+      [...n.attributes].forEach((a)=>{const ok=(n.tagName==="A"&&["href","title"].includes(a.name))||(n.tagName==="IMG"&&["src","alt","title","width","height"].includes(a.name)); if(!ok)n.removeAttribute(a.name);});
+      if(n.tagName==="A"){const h=n.getAttribute("href")||""; if(!/^https?:\/\//i.test(h))n.removeAttribute("href"); else {n.target="_blank";n.rel="noopener noreferrer";}}
+      if(n.tagName==="IMG"&&!/^https?:\/\//i.test(n.getAttribute("src")||""))n.remove();
+    });
+    return d.body.innerHTML;
+  }
   function summaryHtml(s) { if (typeof s === "string") return `<p>${esc(s).replaceAll("\n","<br>")}</p>`; return `${s.overview?`<p>${esc(s.overview)}</p>`:""}${Array.isArray(s.highlights)?`<h4>Highlights</h4><ul>${s.highlights.map((x)=>`<li><strong>${esc(x.title||"Item")}</strong>${x.whyItMatters?` — ${esc(x.whyItMatters)}`:""}</li>`).join("")}</ul>`:""}${Array.isArray(s.themes)&&s.themes.length?`<h4>Themes</h4><p>${s.themes.map(esc).join(" · ")}</p>`:""}`; }
   function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
   function toast(msg) { clearTimeout(toastTimer); E.toast.textContent=msg; E.toast.classList.remove("hidden"); toastTimer=setTimeout(()=>E.toast.classList.add("hidden"),3500); }
