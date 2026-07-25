@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1f6feb" />
+  <title>My AI Dashboard</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <button id="sidebarToggle" class="icon-button mobile-only" aria-label="Open menu">☰</button>
+        <div class="brand-mark">N</div>
+        <div>
+          <h1>My AI Dashboard</h1>
+          <p id="todayLabel"></p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="summaryButton" class="button secondary">✨ Daily summary</button>
+        <button id="addWidgetButton" class="button primary">＋ Add box</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside id="sidebar" class="sidebar">
+        <nav>
+          <button class="nav-item active" data-view="dashboard">▦ <span>Dashboard</span></button>
+          <button class="nav-item" data-view="archive">▣ <span>Archive</span><span id="archiveCount" class="count-pill">0</span></button>
+        </nav>
+
+        <div class="sidebar-section">
+          <h2>Dashboard tools</h2>
+          <button id="refreshAllButton" class="plain-action">↻ Refresh all feeds</button>
+          <button id="exportButton" class="plain-action">⇩ Export backup</button>
+          <label class="plain-action file-label">⇧ Import backup<input id="importInput" type="file" accept="application/json" /></label>
+          <button id="resetButton" class="plain-action danger-text">Reset dashboard</button>
+        </div>
+
+        <div class="sidebar-note">
+          <strong>Private by default</strong>
+          <p>Your layout and local calendar stay in this browser. RSS and AI requests go through your Vercel app.</p>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <section id="dashboardView">
+          <div id="emptyState" class="empty-state hidden">
+            <div class="empty-icon">▦</div>
+            <h2>Your dashboard is empty</h2>
+            <p>Add an RSS feed, calendar, notes box, AI brief, or saved X search.</p>
+            <button class="button primary" data-open-add>＋ Add your first box</button>
+          </div>
+          <div id="dashboardGrid" class="dashboard-grid" aria-live="polite"></div>
+        </section>
+
+        <section id="archiveView" class="hidden">
+          <div class="section-heading">
+            <div>
+              <h2>Archived boxes</h2>
+              <p>Restore old boxes or delete them permanently.</p>
+            </div>
+          </div>
+          <div id="archiveGrid" class="archive-grid"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="modalBackdrop" class="modal-backdrop hidden" role="presentation"></div>
+
+  <section id="addWidgetModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="addWidgetTitle">
+    <div class="modal-header">
+      <div>
+        <p class="eyebrow">MODULAR DASHBOARD</p>
+        <h2 id="addWidgetTitle">Add a box</h2>
+      </div>
+      <button class="icon-button" data-close-modal aria-label="Close">✕</button>
+    </div>
+
+    <div id="widgetTypePicker" class="type-grid">
+      <button class="type-card" data-widget-type="rss"><span>◉</span><strong>RSS feed</strong><small>News, blogs, comics, podcasts</small></button>
+      <button class="type-card" data-widget-type="calendar"><span>▣</span><strong>Calendar</strong><small>A simple local agenda</small></button>
+      <button class="type-card" data-widget-type="notes"><span>✎</span><strong>Notes</strong><small>A small editable scratchpad</small></button>
+      <button class="type-card" data-widget-type="ai"><span>✨</span><strong>AI brief</strong><small>Summarize your feed items</small></button>
+      <button class="type-card" data-widget-type="xsearch"><span>𝕏</span><strong>X search</strong><small>Save a live search shortcut</small></button>
+    </div>
+
+    <form id="widgetForm" class="widget-form hidden">
+      <input id="widgetType" type="hidden" />
+      <div class="form-row">
+        <label for="widgetTitle">Box title</label>
+        <input id="widgetTitle" required maxlength="80" placeholder="My feed" />
+      </div>
+      <div id="dynamicFields"></div>
+      <div class="modal-actions">
+        <button type="button" id="backToTypes" class="button ghost">Back</button>
+        <button type="submit" class="button primary">Add box</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="readerModal" class="modal reader-modal hidden" role="dialog" aria-modal="true" aria-labelledby="readerTitle">
+    <div class="modal-header reader-header">
+      <div>
+        <p id="readerSource" class="eyebrow"></p>
+        <h2 id="readerTitle"></h2>
+      </div>
+      <button class="icon-button" data-close-modal aria-label="Close">✕</button>
+    </div>
+    <div id="readerBody" class="reader-body"></div>
+    <div id="readerFooter" class="reader-footer"></div>
+  </section>
+
+  <section id="calendarEventModal" class="modal small-modal hidden" role="dialog" aria-modal="true" aria-labelledby="calendarEventTitle">
+    <div class="modal-header">
+      <h2 id="calendarEventTitle">Add calendar item</h2>
+      <button class="icon-button" data-close-modal aria-label="Close">✕</button>
+    </div>
+    <form id="eventForm" class="widget-form">
+      <input id="eventWidgetId" type="hidden" />
+      <div class="form-row">
+        <label for="eventTitle">Title</label>
+        <input id="eventTitleInput" required maxlength="100" placeholder="Appointment" />
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row"><label for="eventDate">Date</label><input id="eventDate" required type="date" /></div>
+        <div class="form-row"><label for="eventTime">Time</label><input id="eventTime" type="time" /></div>
+      </div>
+      <div class="form-row"><label for="eventDetails">Details</label><textarea id="eventDetails" rows="3" placeholder="Optional"></textarea></div>
+      <div class="modal-actions"><button type="button" class="button ghost" data-close-modal>Cancel</button><button class="button primary">Save</button></div>
+    </form>
+  </section>
+
+  <section id="confirmModal" class="modal small-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-header">
+      <h2 id="confirmTitle">Are you sure?</h2>
+      <button class="icon-button" data-close-modal aria-label="Close">✕</button>
+    </div>
+    <p id="confirmText" class="confirm-text"></p>
+    <div class="modal-actions"><button class="button ghost" data-close-modal>Cancel</button><button id="confirmAction" class="button danger">Delete</button></div>
+  </section>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
