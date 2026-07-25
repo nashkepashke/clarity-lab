@@ -4,9 +4,13 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Use a POST request." });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const suppliedKey = Array.isArray(req.headers["x-gemini-api-key"])
+    ? req.headers["x-gemini-api-key"][0]
+    : req.headers["x-gemini-api-key"];
+  const apiKey = process.env.GEMINI_API_KEY || String(suppliedKey || "").trim();
   if (!apiKey) return res.status(503).json({
-    error: "Gemini is not connected yet. Add GEMINI_API_KEY in Vercel settings, then redeploy."
+    code: "gemini_key_missing",
+    error: "Gemini needs an API key. Click “Connect Gemini” in the dashboard and paste it once."
   });
 
   const body = typeof req.body === "string" ? json(req.body) : (req.body || {});

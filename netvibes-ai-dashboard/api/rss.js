@@ -63,7 +63,8 @@ function parseFeed(xml, baseUrl) {
     const sourceItemId = cleanText(tagValue(block, ["guid", "id"])) || canonicalUrl || `${title}-${index}`;
     const publishedAt = normalizeDate(cleanText(tagValue(block, ["pubDate", "published", "updated", "dc:date"]))) || null;
     const author = cleanText(tagValue(block, ["author", "dc:creator", "name"])) || null;
-    const contentHtml = rawValue(block, ["content:encoded", "content", "description", "summary"]) || "";
+    const rawContent = rawValue(block, ["content:encoded", "content", "description", "summary"]) || "";
+    const contentHtml = normalizeFeedHtml(rawContent, baseUrl);
     const excerpt = cleanText(rawValue(block, ["description", "summary", "content"]) || contentHtml).slice(0, 700);
     const enclosure = enclosureData(block, baseUrl);
     const imageUrl = enclosure.imageUrl || firstImage(contentHtml, baseUrl) || mediaImage(block, baseUrl) || null;
@@ -71,12 +72,11 @@ function parseFeed(xml, baseUrl) {
     return {
       sourceItemId,
       title,
-      url: canonicalUrl || null,
       canonicalUrl: canonicalUrl || null,
       publishedAt,
       author,
       excerpt,
-      contentHtml: removeDangerousMarkup(contentHtml),
+      contentHtml,
       imageUrl,
       media: enclosure.media
     };
@@ -133,6 +133,21 @@ function enclosureData(block, baseUrl) {
 function mediaImage(block, baseUrl) {
   const match = block.match(/<media:(?:thumbnail|content)\b[^>]*url=["']([^"']+)["'][^>]*>/i);
   return match ? absolutize(decodeEntities(match[1]), baseUrl) : null;
+}
+
+function normalizeFeedHtml(value, baseUrl) {
+  // Some feeds (including xkcd) HTML-encode their entire description, so
+  // "<img …>" arrives as "&lt;img …&gt;". Decode it before sanitizing.
+  let html = decodeEntities(unwrapCdata(String(value || "")));
+  if (/&(?:lt|gt|quot|apos|#\d+|#x[0-9a-f]+);/i.test(html) && !/<[a-z][\s>]/i.test(html)) {
+    html = decodeEntities(html);
+  }
+
+  html = removeDangerousMarkup(html);
+  return html.replace(/\b(src|href)=(["'])(.*?)\2/gi, (full, name, quote, url) => {
+    const absolute = absolutize(decodeEntities(url), baseUrl);
+    return absolute ? `${name}=${quote}${absolute}${quote}` : full;
+  });
 }
 
 function firstImage(html, baseUrl) {
